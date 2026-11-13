@@ -1,0 +1,10 @@
+*.pdf binary
+*.bin binary
+*.docx binary
+*.pptx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.stl binary
+*.ino text eol=lf
+*.py text eol=lf
