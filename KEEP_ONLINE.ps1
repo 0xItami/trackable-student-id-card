@@ -24,6 +24,14 @@ Remove-Item -LiteralPath $stopFlag -ErrorAction SilentlyContinue
 Set-Content -LiteralPath $pidFile -Value $PID
 $env:PYTHONUNBUFFERED = '1'
 
+# The live dashboard is on the public internet, so it must not use the demo
+# password printed in the README. Put the real one in tmp\siid-admin-password.txt
+# (tmp\ is never committed). Without that file the backend falls back to the demo login.
+$adminPasswordFile = Join-Path $tmp 'siid-admin-password.txt'
+if (Test-Path -LiteralPath $adminPasswordFile) {
+    $env:SIID_ADMIN_PASSWORD = (Get-Content -LiteralPath $adminPasswordFile -Raw).Trim()
+}
+
 Add-Type -Namespace SiidOnline -Name Power -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("kernel32.dll")]
 public static extern uint SetThreadExecutionState(uint esFlags);
