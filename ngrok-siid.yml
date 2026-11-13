@@ -1,0 +1,14 @@
+# ngrok endpoints for SIID-01 (used by KEEP_ONLINE.ps1; the authtoken stays in
+# ngrok's own default config, which is loaded alongside this file).
+#   http://  -> for the card: the A7670 modem posts plain HTTP, no TLS
+#   https:// -> for phones and browsers, which switch links to https on their own
+version: 3
+endpoints:
+  - name: siid-card-http
+    url: http://frill-relay-nacho.ngrok-free.dev
+    upstream:
+      url: http://127.0.0.1:5000
+  - name: siid-browser-https
+    url: https://frill-relay-nacho.ngrok-free.dev
+    upstream:
+      url: http://127.0.0.1:5000

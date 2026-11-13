@@ -62,7 +62,7 @@ function Stop-Backend {
 
 function Stop-Ngrok {
     Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -eq 'ngrok.exe' -and $_.CommandLine -like '*frill-relay-nacho*' } |
+        Where-Object { $_.Name -eq 'ngrok.exe' -and ($_.CommandLine -like '*frill-relay-nacho*' -or $_.CommandLine -like '*ngrok-siid.yml*') } |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
 
@@ -77,8 +77,10 @@ function Start-Backend {
 function Start-Ngrok {
     $ngrok = (Get-Command ngrok -ErrorAction SilentlyContinue).Source
     if (-not $ngrok) { Write-Log 'ngrok not found on PATH'; return }
-    Write-Log 'starting ngrok'
-    Start-Process -FilePath $ngrok -ArgumentList @('http', "--url=$publicUrl", '5000', '--log=stdout') `
+    Write-Log 'starting ngrok (http for the card + https for browsers)'
+    $defaultConfig = Join-Path $env:LOCALAPPDATA 'ngrok\ngrok.yml'
+    $siidConfig    = Join-Path $root 'ngrok-siid.yml'
+    Start-Process -FilePath $ngrok -ArgumentList @('start', '--all', "--config=`"$defaultConfig`"", "--config=`"$siidConfig`"", '--log=stdout') `
         -WorkingDirectory $root -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $tmp 'ngrok-output.log') `
         -RedirectStandardError  (Join-Path $tmp 'ngrok-error.log') | Out-Null
