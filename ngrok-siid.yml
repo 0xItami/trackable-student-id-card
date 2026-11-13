@@ -6,6 +6,19 @@ version: 3
 endpoints:
   - name: siid-card-http
     url: http://frill-relay-nacho.ngrok-free.dev
+    # Plain HTTP exists only for the card. Everything except its two POST paths
+    # (login, dashboard, API) is redirected to https so no password or session
+    # cookie ever crosses the internet unencrypted.
+    traffic_policy:
+      on_http_request:
+        - expressions:
+            - "!(req.url.path in ['/api/ingest', '/api/heartbeat'])"
+          actions:
+            - type: redirect
+              config:
+                from: "^http://([^/]+)(.*)$"
+                to: "https://$1$2"
+                status_code: 302
     upstream:
       url: http://127.0.0.1:5000
   - name: siid-browser-https
