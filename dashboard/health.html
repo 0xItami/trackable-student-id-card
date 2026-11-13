@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>System Health · ABU Student Tracking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/abu.css">
+<script defer src="/static/app.js"></script>
+<style>
+  .health-hero{ display:flex; align-items:center; gap:18px; padding:22px; margin-bottom:16px; }
+  .health-orb{ width:56px; height:56px; border-radius:17px; display:grid; place-items:center; background:var(--idle-soft); color:var(--muted); font-size:1.4rem; }
+  .health-orb.ok{ background:var(--live-soft); color:var(--live); }
+  .health-hero h2{ margin:0; font-size:1.35rem; }
+  .health-hero p{ margin:4px 0 0; color:var(--muted); font-size:.86rem; }
+  .health-hero .actions{ margin-left:auto; display:flex; gap:9px; flex-wrap:wrap; }
+  .check-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
+  .check{ padding:18px; min-height:142px; display:flex; flex-direction:column; }
+  .check-head{ display:flex; align-items:center; gap:10px; }
+  .check-dot{ width:11px; height:11px; border-radius:50%; background:var(--idle); box-shadow:0 0 0 5px var(--idle-soft); }
+  .check-dot.ok{ background:var(--live); box-shadow:0 0 0 5px var(--live-soft); }
+  .check h3{ margin:0; font-size:.97rem; }
+  .check .message{ color:var(--muted); font-size:.82rem; line-height:1.45; margin:15px 0 8px; }
+  .check .detail{ margin-top:auto; font:500 .74rem var(--mono); color:var(--ink-2); overflow-wrap:anywhere; }
+  .demo-note{ margin-top:16px; padding:18px 20px; }
+  .demo-note ol{ margin:10px 0 0 20px; padding:0; color:var(--ink-2); font-size:.85rem; line-height:1.75; }
+  @media(max-width:720px){ .health-hero{ align-items:flex-start; flex-wrap:wrap; }.health-hero .actions{ margin-left:0; width:100%; } }
+</style>
+</head>
+<body class="app">
+<div class="shell">
+  <aside class="sidebar glass">
+    <div class="brand">
+      <img class="crest-img" src="/static/abu-logo.jpg" alt="Ahmadu Bello University, Zaria" onerror="this.onerror=null;this.src='/static/crest-fallback.svg'">
+      <div class="wordmark"><div class="u">ABU Zaria</div><div class="sys">Student Tracking</div></div>
+    </div>
+    <div class="nav-label">Menu</div>
+    <a class="nav-item" href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+    <a class="nav-item" href="/students"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>Students</a>
+    <a class="nav-item" href="/live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Live Map</a>
+    <a class="nav-item" href="/activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Activity</a>
+    <a class="nav-item active" href="/health"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h3l2-5 4 10 2-5h5"/><circle cx="12" cy="12" r="10"/></svg>System Health</a>
+    <a class="nav-item" href="/docs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>API Docs</a>
+    <div class="grow"></div>
+    <div class="side-user"><div class="avatar gold" style="width:34px;height:34px;border-radius:9px;font-size:.76rem;">SA</div><div class="who"><b>Security Admin</b><br><span>Signed in</span></div><a href="/logout" title="Sign out">↗</a></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar glass"><div><h1>System Health</h1><span class="sub">Pre-presentation readiness check</span></div><div class="spacer"></div><span class="sub" id="checked">Checking&hellip;</span></header>
+    <main class="content">
+      <section class="card glass health-hero">
+        <div class="health-orb" id="health-orb">✓</div>
+        <div><h2 id="health-title">Checking the system&hellip;</h2><p id="health-copy">This normally takes less than a second.</p></div>
+        <div class="actions"><button class="btn btn-ghost" id="copy-url" type="button">Copy card URL</button><button class="btn btn-ghost" id="refresh" type="button">Run checks again</button><a class="btn btn-primary" href="/track/U19CO1011">Open live map</a></div>
+      </section>
+
+      <div class="check-grid" id="checks"></div>
+
+      <section class="card demo-note">
+        <div class="card-h">Presentation order</div>
+        <ol>
+          <li>Make sure the server, database and presentation files are green.</li>
+          <li>Make sure the public card URL is green before powering the LilyGO board.</li>
+          <li>Wait for the card to report. Indoors it may show an approximate cell-tower position.</li>
+          <li>Open the live map. If internet tiles fail, use the saved offline replay.</li>
+        </ol>
+      </section>
+    </main>
+  </div>
+</div>
+<script>
+  const labels={backend:'Dashboard server',database:'Tracking database',tunnel:'Public card connection',device:'LilyGO card',position:'Latest position',offline_assets:'Offline presentation files'};
+  let publicUrl='';
+  function detailFor(key,value){
+    if(key==='tunnel') return value.public_url||'Start ngrok to receive reports over the SIM.';
+    if(key==='device') return value.last_seen?`Last report: ${new Date(value.last_seen).toLocaleString('en-GB')} · signal ${value.signal??'unknown'}`:'No card report stored.';
+    if(key==='position') return value.last_seen?`${value.source||'unknown source'} · ${value.lat?.toFixed(5)}, ${value.lng?.toFixed(5)}`:'No saved coordinate.';
+    if(key==='database') return value.path||'';
+    return value.ok?'Ready':'Needs attention';
+  }
+  function render(data){
+    const allCore=data.backend.ok&&data.database.ok&&data.offline_assets.ok;
+    const fullyLive=allCore&&data.tunnel.ok&&data.device.ok;
+    const orb=document.getElementById('health-orb'); orb.classList.toggle('ok',allCore);
+    document.getElementById('health-title').textContent=fullyLive?'Everything is ready for live tracking':allCore?'Dashboard ready · live link needs attention':'A required presentation check failed';
+    document.getElementById('health-copy').textContent=fullyLive?'The board, public link and dashboard are communicating.':allCore?'You can still demonstrate the saved route while fixing the live connection.':'Read the cards below before starting the demonstration.';
+    document.getElementById('checked').textContent=`Checked ${new Date(data.checked_at).toLocaleTimeString('en-GB')}`;
+    publicUrl=data.tunnel.public_url?`${data.tunnel.public_url}/api/ingest`:'';
+    document.getElementById('copy-url').disabled=!publicUrl;
+    const grid=document.getElementById('checks'); grid.replaceChildren();
+    Object.keys(labels).forEach(key=>{
+      const value=data[key];
+      const card=document.createElement('section'); card.className='card check';
+      const head=document.createElement('div'); head.className='check-head';
+      const dot=document.createElement('span'); dot.className=`check-dot ${value.ok?'ok':''}`;
+      const title=document.createElement('h3'); title.textContent=labels[key];
+      head.append(dot,title);
+      const message=document.createElement('div'); message.className='message'; message.textContent=value.message;
+      const detail=document.createElement('div'); detail.className='detail'; detail.textContent=detailFor(key,value);
+      card.append(head,message,detail); grid.append(card);
+    });
+  }
+  function loadHealth(){
+    document.getElementById('refresh').disabled=true;
+    fetch('/api/system/health').then(response=>response.json()).then(render).catch(()=>{
+      document.getElementById('health-title').textContent='The dashboard server cannot be reached';
+      document.getElementById('health-copy').textContent='Restart it with START_DEMO.cmd in the project folder.';
+    }).finally(()=>{ document.getElementById('refresh').disabled=false; });
+  }
+  document.getElementById('refresh').addEventListener('click',loadHealth);
+  document.getElementById('copy-url').addEventListener('click',()=>{
+    if(publicUrl) navigator.clipboard.writeText(publicUrl).then(()=>{ document.getElementById('copy-url').textContent='Copied'; });
+  });
+  loadHealth(); setInterval(loadHealth,5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<meta charset="UTF-8">
+<title>SIID-01 &mdash; Trackable Student ID Card, Project Plan</title>
+<style>
+  :root{
+    --ink:#161a22;
+    --paper:#eef2ec;
+    --paper-raised:#e3e8df;
+    --line:#c9d0c2;
+    --accent:#b5661f;
+    --accent-soft:#e7d3bd;
+    --good:#3c7a54;
+    --good-soft:#d9e8dd;
+    --warn:#a9791f;
+    --warn-soft:#ecdfbd;
+    --crit:#a8402f;
+    --crit-soft:#eed3cd;
+    --mono: Consolas, "Cascadia Mono", "SF Mono", Menlo, monospace;
+    --serif: Charter, "Iowan Old Style", Georgia, Cambria, serif;
+  }
+  :root[data-theme="dark"]{
+    --ink:#e9ece3;
+    --paper:#12151b;
+    --paper-raised:#1b2028;
+    --line:#2d3440;
+    --accent:#dd9153;
+    --accent-soft:#3a2c1e;
+    --good:#69b58a;
+    --good-soft:#1e2f24;
+    --warn:#d1a94a;
+    --warn-soft:#33290f;
+    --crit:#dd7b6a;
+    --crit-soft:#33201b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e9ece3;
+      --paper:#12151b;
+      --paper-raised:#1b2028;
+      --line:#2d3440;
+      --accent:#dd9153;
+      --accent-soft:#3a2c1e;
+      --good:#69b58a;
+      --good-soft:#1e2f24;
+      --warn:#d1a94a;
+      --warn-soft:#33290f;
+      --crit:#dd7b6a;
+      --crit-soft:#33201b;
+    }
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:16px;
+    line-height:1.55;
+    margin:0;
+    padding:0 20px 80px;
+  }
+  .sheet{max-width:920px;margin:0 auto;}
+
+  .titleblock{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:8px 24px;
+    border:1.5px solid var(--ink);
+    padding:18px 22px;
+    margin-top:32px;
+  }
+  .titleblock h1{
+    font-family:var(--mono);
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    font-size:1.5rem;
+    margin:0 0 6px;
+    text-wrap:balance;
+    grid-column:1/2;
+  }
+  .titleblock .sub{
+    font-family:var(--mono);
+    font-size:0.85rem;
+    color:var(--accent);
+    grid-column:1/2;
+  }
+  .titleblock .meta{
+    font-family:var(--mono);
+    font-size:0.78rem;
+    text-align:right;
+    line-height:1.8;
+    white-space:nowrap;
+    grid-column:2/3;
+  }
+  .titleblock .meta b{color:var(--accent);}
+
+  h2{
+    font-family:var(--mono);
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    font-size:1.05rem;
+    border-bottom:1.5px solid var(--ink);
+    padding-bottom:6px;
+    margin:52px 0 18px;
+  }
+  h2 span.tag{
+    color:var(--accent);
+    margin-right:10px;
+  }
+
+  p{max-width:70ch;}
+  .callout{
+    background:var(--paper-raised);
+    border-left:3px solid var(--accent);
+    padding:14px 18px;
+    font-size:0.95rem;
+    max-width:70ch;
+    margin:16px 0;
+  }
+  .callout b{color:var(--accent);}
+
+  /* diagram */
+  .diagram{
+    display:flex;
+    align-items:center;
+    gap:0;
+    overflow-x:auto;
+    padding:24px 4px;
+    font-family:var(--mono);
+  }
+  .node{
+    border:1.5px solid var(--ink);
+    background:var(--paper-raised);
+    padding:12px 14px;
+    font-size:0.72rem;
+    line-height:1.5;
+    min-width:132px;
+    flex:0 0 auto;
+  }
+  .node b{
+    display:block;
+    font-size:0.8rem;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--accent);
+    margin-bottom:4px;
+  }
+  .arrow{
+    flex:0 0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    font-size:0.65rem;
+    color:var(--ink);
+    opacity:0.75;
+    padding:0 8px;
+    min-width:76px;
+    text-align:center;
+  }
+  .arrow .line{
+    width:100%;
+    height:1.5px;
+    background:var(--ink);
+    position:relative;
+    margin:4px 0;
+  }
+  .arrow .line::after{
+    content:"";
+    position:absolute;right:0;top:-3px;
+    border:5px solid transparent;
+    border-left-color:var(--ink);
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:0.88rem;
+  }
+  .tablewrap{overflow-x:auto;}
+  th{
+    font-family:var(--mono);
+    text-transform:uppercase;
+    font-size:0.7rem;
+    letter-spacing:0.03em;
+    text-align:left;
+    border-bottom:1.5px solid var(--ink);
+    padding:8px 10px;
+    white-space:nowrap;
+  }
+  td{
+    padding:9px 10px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  td.num, th.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+  tr:last-child td{border-bottom:1.5px solid var(--ink);}
+  a{color:var(--accent);}
+  a:visited{color:var(--accent);}
+
+  .chip{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+    padding:2px 8px;
+    border-radius:2px;
+    white-space:nowrap;
+  }
+  .chip.crit{background:var(--crit-soft);color:var(--crit);}
+  .chip.good{background:var(--good-soft);color:var(--good);}
+  .chip.warn{background:var(--warn-soft);color:var(--warn);}
+
+  .timeline{border-left:2px solid var(--ink);margin-left:6px;}
+  .day{
+    position:relative;
+    padding:2px 0 22px 26px;
+  }
+  .day::before{
+    content:"";
+    position:absolute;
+    left:-7px;top:4px;
+    width:12px;height:12px;
+    background:var(--paper);
+    border:2px solid var(--accent);
+    border-radius:50%;
+  }
+  .day .when{
+    font-family:var(--mono);
+    font-size:0.76rem;
+    color:var(--accent);
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-bottom:4px;
+  }
+  .day p{margin:4px 0 0;font-size:0.94rem;}
+
+  .grid2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  @media (max-width:640px){.grid2{grid-template-columns:1fr;}}
+
+  footer{
+    margin-top:60px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-family:var(--mono);
+    font-size:0.72rem;
+    opacity:0.65;
+  }
+</style>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <h1>Trackable Student ID Card</h1>
+    <div class="sub">Real-time location tracking &mdash; lanyard/pocket badge prototype</div>
+    <div class="meta">
+      DOC <b>SIID&#8209;01</b> &middot; REV A<br>
+      ISSUED 2026&#8209;07&#8209;08<br>
+      PRESENTATION <b>2026&#8209;08&#8209;31</b><br>
+      Computer Engineering &middot; ABU Zaria
+    </div>
+  </div>
+
+  <h2><span class="tag">01</span>System overview &amp; chosen approach</h2>
+  <p>
+    The demo requirement &mdash; live position on a map and operation beyond 200&nbsp;m from a portable badge
+    &mdash; rules out plain passive RFID (a few centimetres) and classic Bluetooth (tens of metres). The build
+    is <b>a single all-in-one board</b>: a <b>LilyGO T-A7670E</b>, which carries the ESP32, a <b>4G&nbsp;LTE
+    modem</b> (with <b>built-in GNSS</b>), the SIM slot, and battery charging on one PCB. The card reads its own GPS and
+    sends the position over LTE straight to the backend. There is no base station, no radio pair to match, and
+    &mdash; because the cellular network carries the data &mdash; range stops being a design problem. 200&nbsp;m
+    is trivially within reach. Consolidating everything onto one board also removed the separate modem, GPS,
+    charger, and capacitor from the earlier plan.
+  </p>
+
+  <div class="diagram">
+    <div class="node"><b>Card</b>LilyGO T&#8209;A7670E<br>ESP32 + 4G LTE<br>+ modem GNSS<br>+ LiPo cell</div>
+    <div class="arrow">4G LTE<br>(HTTP POST)<div class="line"></div></div>
+    <div class="node"><b>Backend</b>Python<br>Flask&#8209;SocketIO<br>+ SQLite log</div>
+    <div class="arrow">WebSocket<br>live push<div class="line"></div></div>
+    <div class="node"><b>Dashboard</b>Browser<br>Leaflet.js map<br>live marker</div>
+  </div>
+
+  <div class="callout">
+    <b>Why one integrated board?</b> The LilyGO T-A7670 puts the MCU, LTE modem, SIM slot, GPS and charger on a
+    single PCB. That deletes almost all wiring and every gotcha of a discrete build (modem power bursts, the
+    decoupling capacitor, level shifting). Physical assembly is: insert SIM, plug in battery, screw on two
+    antennas, flash. Lowest-risk path for the build.
+  </div>
+  <div class="callout">
+    <b>Will 4G LTE work in Zaria?</b> Yes &mdash; the A7670E supports band <b>B3 (1800&nbsp;MHz)</b>, the main
+    Nigerian 4G band used by MTN, Airtel and 9mobile. Use a 4G-enabled SIM and sanity-check it browses on a
+    phone at the demo spot. (Urban Zaria has solid LTE coverage.)
+  </div>
+  <div class="callout">
+    <b>One thing to verify on the board:</b> GNSS + the GPS antenna port exist only on the <b>A7670E-with-GPS</b>
+    variant. Confirm your board has a <b>second antenna connector labelled GPS</b> and shipped with two antennas
+    &mdash; that is the position source for the whole project.
+  </div>
+  <div class="callout">
+    <b>On physical size:</b> a true ISO card is about 85.6 &times; 54 &times; 0.76&nbsp;mm. The development
+    board alone is about 106&nbsp;mm long, so the current enclosure calculates to roughly
+    110.4 &times; 75.1 &times; 8.4&nbsp;mm before printer tolerances. It is a lanyard/pocket badge,
+    not a wallet card. A custom PCB is the correct route to ISO dimensions.
+  </div>
+
+  <h2><span class="tag">02</span>Bill of materials</h2>
+  <p>The main board (ordered, in transit) integrates almost everything &mdash; that is why this list is short.
+  The remaining items are a battery, a SIM, and a case.</p>
+  <div class="tablewrap">
+  <table>
+    <tr><th>Component</th><th>Qty</th><th>Purpose</th><th class="num">Est. price</th><th>Source</th></tr>
+    <tr><td><b>LilyGO T-A7670E</b> (ESP32 + 4G LTE w/ built-in GNSS + charger)</td><td class="num">1</td><td>The entire card electronics on one board &mdash; MCU, modem, SIM slot, GPS, battery charging</td><td class="num">&#8358;35,000&#8211;55,000</td><td>Ordered (LilyGO / AliExpress)</td></tr>
+    <tr><td>LTE + GPS antennas</td><td class="num">2</td><td>Cellular + satellite reception</td><td class="num">usually included</td><td>Ships with the board</td></tr>
+    <tr><td>Data SIM (MTN / Airtel / Glo / 9mobile), <b>4G-enabled</b>, nano</td><td class="num">1</td><td>Mobile data for the card to upload position</td><td class="num">&#8358;500 + small data</td><td>Any network shop</td></tr>
+    <tr><td>LiPo battery, 3.7V 1000mAh+ with JST connector</td><td class="num">1</td><td>Card power (charges on the board over USB-C)</td><td class="num">&#8358;3,000&#8211;5,000</td><td>Local / phone-repair shop</td></tr>
+    <tr><td>3D-printed case (or hard ID-card holder)</td><td class="num">1</td><td>Housing &mdash; see <code>hardware/enclosure.scad</code></td><td class="num">&#8358;500&#8211;1,500</td><td>3D print / stationery shop</td></tr>
+    <tr><td>USB-C cable</td><td class="num">1</td><td>Flashing + charging</td><td class="num">likely on hand</td><td>&mdash;</td></tr>
+  </table>
+  </div>
+  <p style="font-size:0.85rem;opacity:0.75;">No TP4056, no SIM868/SIM800L, no separate GPS, no decoupling capacitor, no perfboard wiring &mdash; the T-A7670 replaces all of them. <b>Confirm your board is the A7670E-with-GPS variant</b> (second antenna connector labelled GPS); the E/SA variants and the G-without-GPS have no position source.</p>
+
+  <h2><span class="tag">03</span>Approach comparison</h2>
+  <div class="tablewrap">
+  <table>
+    <tr><th>Approach</th><th>200m range</th><th>Parts to wire</th><th>Map</th><th>Build risk in 15 days</th></tr>
+    <tr><td>BLE 5 Coded PHY</td><td>Possible, line-of-sight only, needs ESP-IDF</td><td>2 devices</td><td>Custom scaled field map</td><td><span class="chip crit">high</span></td></tr>
+    <tr><td>GPS + LoRa</td><td>Comfortably exceeds spec</td><td>card + base station</td><td>Real map (Leaflet/OSM)</td><td><span class="chip warn">medium</span> &mdash; radio pair to match</td></tr>
+    <tr><td>GPS + GSM (discrete SIM868 / SIM800L)</td><td>Unlimited (network carries it)</td><td>modem + GPS + charger + cap</td><td>Real map (Leaflet/OSM)</td><td><span class="chip warn">medium</span> &mdash; power/wiring gotchas</td></tr>
+    <tr><td><b>LilyGO T-A7670E (4G all-in-one)</b> &mdash; chosen</td><td>Unlimited (network carries it)</td><td><b>none &mdash; one board</b></td><td>Real map (Leaflet/OSM)</td><td><span class="chip good">low</span> &mdash; no wiring</td></tr>
+  </table>
+  </div>
+
+  <h2><span class="tag">04</span>Day-by-day schedule</h2>
+  <div class="timeline">
+
+    <div class="day">
+      <div class="when">JUL 25 &middot; TODAY <span class="chip good">software + hardware working</span></div>
+      <p><b>Already achieved:</b> board flashed; A7670E modem identified; SIM registered on MTN (621&#8209;30); <b>LTE data connected</b>; built-in GNSS powered and answering; card POSTing live to the backend over 4G (HTTP 200); ABU-branded dashboard with live map, roster, search, ping, activity log and Swagger API docs; indoor cell-tower fallback verified; GPS-hold logic added.</p>
+    </div>
+    <div class="day">
+      <div class="when">JUL 26&#8211;27 <span class="chip crit">milestone: first real satellite fix</span></div>
+      <p>The one untested thing. Power the card from a USB power bank, take it <b>outside</b> with the GPS antenna facing up, and wait 1&ndash;5&nbsp;min for the cold start. Confirm <code>+CGNSSINFO</code> fills in and your true position appears on the map. <b>Screen-record it</b> &mdash; that recording is your insurance for the rest of the project.</p>
+    </div>
+    <div class="day">
+      <div class="when">JUL 28 <span class="chip crit">200 m range + indoor hold</span></div>
+      <p>Walk the card 200&nbsp;m+ away from the laptop and log distance vs. successful updates and CSQ &mdash; the expected result is that distance does not degrade performance, because the path is the cellular network. Then walk back <b>indoors</b> and confirm the dashboard holds the last GPS position (labelled &ldquo;Last GPS fix&rdquo;) instead of jumping to a coarse cell position.</p>
+    </div>
+    <div class="day">
+      <div class="when">JUL 29&#8211;30 <span class="chip warn">optional: indoor accuracy</span></div>
+      <p>With time in hand, add WiFi-based indoor positioning: the card scans nearby access points and the <b>backend</b> resolves them to a position via a geolocation API (keeps TLS off the modem). Gets indoor accuracy from ~km down to tens of metres. Skip if sourcing an API key stalls &mdash; GPS-hold already covers the demo.</p>
+    </div>
+    <div class="day">
+      <div class="when">AUG 28</div>
+      <p>Freeze functionality, flash the authenticated firmware, verify the real card posts, and measure the board, battery and antennas before committing to a full enclosure print.</p>
+    </div>
+    <div class="day">
+      <div class="when">AUG 29 <span class="chip warn">live demo</span></div>
+      <p>Record measured results: first-fix time, satellite count/fix quality, 200&nbsp;m continuity, update latency and battery runtime. Save screenshots, serial logs and one clean route for playback.</p>
+    </div>
+    <div class="day">
+      <div class="when">AUG 30 <span class="chip good">rehearsal</span></div>
+      <p>Full timed dry run of the exact sequence the panel will see (see the demo runbook in <code>TECHNICAL_DOCUMENTATION.md</code> &sect;12). Charge the battery, reserve/confirm the ngrok domain, pack the kit, print the report.</p>
+    </div>
+    <div class="day">
+      <div class="when">AUG 31 <span class="chip crit">presentation</span></div>
+      <p>Presentation day: use the live card first, then route playback or simulator only as a declared fallback.</p>
+    </div>
+  </div>
+
+  <h2><span class="tag">05</span>Risks &amp; mitigations</h2>
+  <div class="tablewrap">
+  <table>
+    <tr><th>Risk</th><th>Mitigation</th></tr>
+    <tr><td>Shipping delay from Lagos-based sellers</td><td>Order today; keep a local Zaria/Kaduna shop or Jiji.ng seller as same-day backup for anything critical-path</td></tr>
+    <tr><td>No GPS fix indoors</td><td>Always test and demo outdoors with a clear sky view; never rely on an indoor rehearsal as proof it works</td></tr>
+    <tr><td>Board has no GPS (E/SA or G-without-GPS variant)</td><td>Verify a second antenna connector labelled GPS <b>before</b> relying on it; if absent, source the A7670E-with-GPS board or an add-on GPS early</td></tr>
+    <tr><td>Modem won't power up on battery</td><td>Firmware sets POWERON high + pulses PWRKEY; keep the LiPo plugged in (modem needs battery current), and flip <code>MODEM_RESET_LEVEL</code> if needed (see assembly guide &sect;6)</td></tr>
+    <tr><td>Weak/no 4G signal at demo spot</td><td>Test the exact location beforehand; confirm a 4G SIM browses in a phone there. Pick an open outdoor spot with both sky view (GPS) and LTE bars</td></tr>
+    <tr><td>ngrok address changes between sessions</td><td>Use the account's static HTTP development domain when available and verify it before the live test</td></tr>
+    <tr><td>Enclosure too bulky to read as "wallet"</td><td>Frame it in the report as a deliberate trade-off (see &sect;01), with the thickness measured and justified rather than hidden</td></tr>
+  </table>
+  </div>
+
+  <footer>SIID&#8209;01 REV A &middot; bt_scan project plan &middot; generated 2026&#8209;07&#8209;08</footer>
+</div>

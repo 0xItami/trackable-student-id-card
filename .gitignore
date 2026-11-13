@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+backend/tracking.db
+tmp/
+firmware/card/build/
+~$*
+.codex-remote-attachments/

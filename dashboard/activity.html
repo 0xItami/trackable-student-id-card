@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Activity · ABU Student Tracking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet">
+<script src="/static/socket.io.min.js"></script>
+<link rel="stylesheet" href="/static/abu.css">
+<script defer src="/static/app.js"></script>
+<style>
+  .kpi-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; }
+  .kpi2{ padding:16px 18px; border-radius:var(--r); position:relative; overflow:hidden; }
+  .kpi2 .k{ font-size:.68rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600; }
+  .kpi2 .v{ font-size:1.9rem; font-weight:600; letter-spacing:-0.03em; margin-top:8px; font-variant-numeric:tabular-nums; }
+  .kpi2 .foot{ font-size:.74rem; color:var(--muted); margin-top:5px; }
+  .kpi2 .rail{ position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--line); }
+  .kpi2.a .rail{ background:var(--green); } .kpi2.b .rail{ background:var(--gold); }
+  .kpi2.c .rail{ background:var(--live); } .kpi2.d .rail{ background:#5aa8d6; }
+
+  .charts{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px; }
+  @media (max-width:980px){ .charts{ grid-template-columns:1fr; } }
+
+  /* source-over-time strip: one thin segment per reading, coloured by source */
+  .strip{ display:flex; height:34px; border-radius:8px; overflow:hidden; background:var(--surface-2); }
+  .strip i{ flex:1 1 0; min-width:1px; display:block; }
+  .strip-ax{ display:flex; justify-content:space-between; font-family:var(--mono);
+    font-size:.7rem; color:var(--muted); margin-top:7px; }
+
+  /* filters */
+  .filters{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:18px 0 12px; }
+  .chip2{ border:1px solid var(--line); background:var(--surface); border-radius:99px;
+    padding:7px 14px; font:inherit; font-size:.82rem; font-weight:500; cursor:pointer; color:var(--ink-2);
+    display:inline-flex; align-items:center; gap:8px; }
+  .chip2:hover{ border-color:#cdd6c9; }
+  .chip2.on{ background:var(--green); border-color:var(--green); color:#fff; }
+  .chip2 .sw2{ width:9px; height:9px; border-radius:3px; }
+  .filters .spacer{ flex:1; }
+  .filters .n{ font-size:.8rem; color:var(--muted); font-family:var(--mono); }
+
+  /* log */
+  .log{ padding:6px 4px; }
+  .lh, .le{ display:grid; grid-template-columns:140px 1.3fr 1.2fr 92px 78px 74px; gap:14px; align-items:center; }
+  .lh{ padding:10px 16px; font-size:.66rem; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--muted); border-bottom:1px solid var(--line); font-weight:600; }
+  .le{ padding:12px 16px; border-bottom:1px solid var(--line); }
+  .le:last-child{ border-bottom:none; }
+  .le .when b{ display:block; font-weight:600; font-size:.86rem; }
+  .le .when span{ font-size:.75rem; color:var(--muted); }
+  .le .stu{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .le .stu .badge{ width:34px; height:22px; border-radius:6px; display:grid; place-items:center;
+    font-size:.6rem; font-weight:700; font-family:var(--mono); color:#fff; flex:0 0 auto; }
+  .le .stu .nm{ font-weight:600; font-size:.87rem; }
+  .le .stu .rg{ font-family:var(--mono); font-size:.71rem; color:var(--green-600); }
+  .le .coord{ font-family:var(--mono); font-size:.8rem; color:var(--ink-2); }
+  .le .mono2{ font-family:var(--mono); font-size:.82rem; }
+  @media (max-width:900px){ .lh{ display:none; } .le{ grid-template-columns:1fr; gap:5px; } }
+</style>
+</head>
+<body class="app">
+<div class="shell">
+  <aside class="sidebar glass">
+    <div class="brand">
+      <img class="crest-img" src="/static/abu-logo.jpg" alt="Ahmadu Bello University, Zaria" onerror="this.onerror=null;this.src='/static/crest-fallback.svg'">
+      <div class="wordmark"><div class="u">ABU Zaria</div><div class="sys">Student Tracking</div></div>
+    </div>
+    <div class="nav-label">Menu</div>
+    <a class="nav-item" href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+    <a class="nav-item" href="/students"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Students</a>
+    <a class="nav-item" href="/live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Live Map</a>
+    <a class="nav-item active" href="/activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Activity</a>
+    <a class="nav-item" href="/health"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h3l2-5 4 10 2-5h5"/><circle cx="12" cy="12" r="10"/></svg>System Health</a>
+    <a class="nav-item" href="/docs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>API Docs</a>
+    <div class="grow"></div>
+    <div class="side-user">
+      <div class="avatar gold" style="width:34px;height:34px;border-radius:9px;font-size:.76rem;">SA</div>
+      <div class="who"><b>Security Admin</b><br><span>Signed in</span></div>
+      <a href="/logout" title="Sign out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar glass">
+      <div><h1>Activity</h1><span class="sub">Location updates received from tracking devices</span></div>
+      <div class="spacer"></div>
+      <div class="sub" id="span">&mdash;</div>
+    </header>
+
+    <div class="content">
+      <div class="kpi-row">
+        <div class="kpi2 card glass a"><div class="rail"></div><div class="k">Events</div>
+          <div class="v" id="k-events">&mdash;</div><div class="foot" id="k-events-foot">location updates</div></div>
+        <div class="kpi2 card glass c"><div class="rail"></div><div class="k">Satellite fixes</div>
+          <div class="v" id="k-gps">&mdash;</div><div class="foot" id="k-gps-foot">of all events</div></div>
+        <div class="kpi2 card glass b"><div class="rail"></div><div class="k">Avg signal</div>
+          <div class="v" id="k-csq">&mdash;</div><div class="foot">0&ndash;31, higher is better</div></div>
+        <div class="kpi2 card glass d"><div class="rail"></div><div class="k">Best fix quality</div>
+          <div class="v" id="k-pdop">&mdash;</div><div class="foot">lower is better</div></div>
+      </div>
+
+      <div class="charts">
+        <section class="card viz" style="padding:18px 20px">
+          <div class="card-h">Positioning source over time <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)" id="strip-n"></span></div>
+          <div class="strip" id="strip"></div>
+          <div class="strip-ax"><span id="strip-a">&mdash;</span><span id="strip-b">now</span></div>
+          <div class="slegend" id="src-legend"></div>
+        </section>
+
+        <section class="card viz" style="padding:18px 20px">
+          <div class="card-h">Fix quality <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">satellite fixes only, lower is better</span></div>
+          <div class="chart" id="pdop-wrap">
+            <svg id="pdop" viewBox="0 0 320 110" preserveAspectRatio="none" role="img" aria-label="Fix quality (PDOP) over time"></svg>
+            <div class="tip" id="pdop-tip"></div>
+          </div>
+          <div class="chart-cap" id="pdop-cap">&mdash;</div>
+        </section>
+      </div>
+
+      <div class="filters" id="filters">
+        <button class="chip2 on" data-f="all">All</button>
+        <button class="chip2" data-f="gps"><span class="sw2" style="background:var(--series-1)"></span>GPS</button>
+        <button class="chip2" data-f="gps_hold"><span class="sw2" style="background:var(--series-3)"></span>Last GPS fix</button>
+        <button class="chip2" data-f="cell"><span class="sw2" style="background:var(--series-4)"></span>Cell tower</button>
+        <div class="spacer"></div>
+        <span class="n" id="shown"></span>
+      </div>
+
+      <div class="card log viz">
+        <div class="lh"><span>Time</span><span>Student</span><span>Position</span><span>Source</span><span>Battery</span><span>Signal</span></div>
+        <div id="log"><div class="loading" style="padding:16px">Loading&hellip;</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/viz.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  const EMDASH = '—';
+  const esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
+  })[c]);
+  const initials = n => n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const battPct = mv => mv ? Math.max(0,Math.min(100,Math.round(((mv-3300)/900)*100))) : null;
+  const clockOf = iso => new Date(iso).toLocaleTimeString('en-GB');
+
+  let allRows = [], filter = 'all';
+
+  function render(){
+    const rows = filter==='all' ? allRows : allRows.filter(r=>(r.src||'test')===filter);
+    $('shown').textContent = rows.length + ' of ' + allRows.length + ' shown';
+    $('log').innerHTML = rows.length ? rows.slice(0,60).map(a=>{
+      const i = SRC[a.src] || {tag:'?', label:a.src||'?', css:'var(--series-2)'};
+      const p = battPct(a.batt_mv);
+      return '<div class="le">'
+        + '<div class="when"><b>'+clockOf(a.ts)+'</b><span>'+timeAgo(a.ts)+'</span></div>'
+        + '<div class="stu"><div class="badge" style="background:'+i.css+'">'+i.tag+'</div>'
+        + '<div><div class="nm">'+esc(a.name||a.card_id)+'</div><div class="rg">'+esc(a.reg_no||a.card_id)+'</div></div></div>'
+        + '<div class="coord">'+a.lat.toFixed(6)+', '+a.lng.toFixed(6)+'</div>'
+        + '<div class="mono2">'+(a.acc && a.acc>0 ? '&plusmn;'+a.acc+' m' : (a.src==='gps'||a.src==='gps_hold'?'&plusmn; few m':EMDASH))+'</div>'
+        + '<div class="mono2">'+(p!==null?p+'%':EMDASH)+'</div>'
+        + '<div class="mono2">'+(a.rssi!=null?a.rssi+' / 31':EMDASH)+'</div>'
+        + '</div>';
+    }).join('') : '<div class="loading" style="padding:16px">No events match this filter.</div>';
+  }
+
+  function load(){
+    fetch('/api/activity?limit=300').then(r=>r.json()).then(rows=>{
+      allRows = rows;
+
+      // ---- KPIs ----
+      const counts = {};
+      rows.forEach(a=>{ const k=a.src||'test'; counts[k]=(counts[k]||0)+1; });
+      const gps = counts.gps||0;
+      $('k-events').textContent = rows.length;
+      $('k-gps').textContent = gps;
+      $('k-gps-foot').textContent = rows.length ? Math.round((gps/rows.length)*100)+'% of all events' : 'of all events';
+
+      const sigs = rows.filter(a=>a.rssi!=null).map(a=>a.rssi);
+      $('k-csq').textContent = sigs.length ? Math.round(sigs.reduce((a,b)=>a+b,0)/sigs.length)+' / 31' : EMDASH;
+
+      const pdops = rows.filter(a=>a.src==='gps' && a.hdop>0).map(a=>a.hdop);
+      $('k-pdop').textContent = pdops.length ? Math.min.apply(null,pdops).toFixed(1) : EMDASH;
+
+      if(rows.length){
+        $('span').textContent = clockOf(rows[rows.length-1].ts)+' – '+clockOf(rows[0].ts);
+        $('strip-a').textContent = clockOf(rows[rows.length-1].ts);
+      }
+
+      // ---- source-over-time strip (oldest -> newest, one segment per reading) ----
+      const chron = rows.slice().reverse();
+      $('strip-n').textContent = '(last '+chron.length+' readings)';
+      $('strip').innerHTML = chron.map(a=>{
+        const i = SRC[a.src] || SRC.test;
+        return '<i style="background:'+i.css+'" title="'+clockOf(a.ts)+' — '+i.label+'"></i>';
+      }).join('');
+      drawSourceBar(null, 'src-legend', counts);
+
+      // ---- fix quality over time (GPS only; lower PDOP is better) ----
+      // A PDOP above ~25 means the geometry was so poor the fix is unusable. Those
+      // outliers are excluded from the plot: a single 100+ reading flattens the
+      // whole series and hides the 1-5 range that actually matters.
+      const PDOP_CLIP = 25;
+      const usable = chron.filter(a=>a.src==='gps' && a.hdop>0);
+      const clipped = usable.filter(a=>a.hdop > PDOP_CLIP).length;
+      const q = usable.filter(a=>a.hdop <= PDOP_CLIP).slice(-60)
+                      .map(a=>({v:Number(a.hdop.toFixed(1)), label:clockOf(a.ts)}));
+      drawSeries('pdop','pdop-wrap','pdop-tip', q,
+        {stroke:'var(--series-1)', fill:'rgba(74,134,200,.14)', unit:'PDOP', min0:5});
+      $('pdop-cap').textContent = q.length
+        ? 'best ' + Math.min.apply(null,q.map(p=>p.v)).toFixed(1)
+          + ' · worst ' + Math.max.apply(null,q.map(p=>p.v)).toFixed(1)
+          + ' · under 2 means the satellites were well spread out'
+          + (clipped ? ' · ' + clipped + ' unusable fix' + (clipped>1?'es':'') + ' above ' + PDOP_CLIP + ' not plotted' : '')
+        : 'no usable satellite fixes recorded yet';
+
+      render();
+    }).catch(()=>{});
+  }
+
+  document.querySelectorAll('#filters .chip2').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#filters .chip2').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); filter = b.dataset.f; render();
+    });
+  });
+
+  load(); setInterval(load, 12000);
+  io().on('location_update', load);
+</script>
+</body>
+</html>

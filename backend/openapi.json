@@ -1,0 +1,486 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SIID-01 — Student Tracking API",
+    "version": "1.1.0",
+    "description": "Backend API for the SIID-01 trackable student ID system (final-year project, Computer Engineering, Ahmadu Bello University, Zaria).\n\n**How the system fits together**\n\n1. The **card** (a LilyGO T-A7670E — ESP32 + 4G LTE modem + GPS) reads its own GPS position and `POST`s it over the mobile network to `POST /api/ingest`. If no trustworthy position is available, it reports connectivity to `POST /api/heartbeat` instead.\n2. The backend **stores** each reading in SQLite and immediately **pushes** it to any open dashboard over a WebSocket (`location_update` event), so the map updates live.\n3. Staff sign in, then the dashboard calls the read APIs below to list students, check a device, and open the live map.\n\nThe API is intentionally small and REST-style: JSON in, JSON out, two authenticated device-report endpoints and a handful of read endpoints for the dashboard.",
+    "contact": { "name": "SIID-01 project" }
+  },
+  "servers": [
+    { "url": "/", "description": "This SIID-01 backend (same origin as the dashboard)" }
+  ],
+  "security": [ { "cookieAuth": [] } ],
+  "tags": [
+    { "name": "Auth", "description": "Staff sign-in for the dashboard (cookie session)." },
+    { "name": "Students", "description": "The registered-student roster and per-student lookups." },
+    { "name": "Telemetry", "description": "Location readings — history, recent trail, and the activity feed." },
+    { "name": "Device", "description": "Authenticated position and online-status reports sent by the tracking card." },
+    { "name": "Safety", "description": "Configurable safety-zone boundary and crossing alerts." },
+    { "name": "System", "description": "Presentation readiness and service health." }
+  ],
+  "paths": {
+    "/login": {
+      "post": {
+        "security": [],
+        "tags": ["Auth"],
+        "summary": "Sign in",
+        "description": "Validates operator-supplied staff credentials and starts a cookie session. On success the body includes where the browser should go next.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" },
+              "example": { "username": "admin", "password": "your-demo-password" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; session cookie set.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginSuccess" },
+              "example": { "ok": true, "redirect": "/dashboard" } } }
+          },
+          "401": {
+            "description": "Wrong username or password.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginError" },
+              "example": { "ok": false, "error": "Incorrect username or password." } } }
+          }
+        }
+      }
+    },
+    "/logout": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Sign out",
+        "description": "Clears the session cookie and redirects to the sign-in page.",
+        "responses": { "302": { "description": "Redirect to /login." } }
+      }
+    },
+    "/api/students": {
+      "get": {
+        "tags": ["Students"],
+        "summary": "List registered students",
+        "description": "Returns the full roster. Each student is flagged with whether a tracking device is assigned (`has_device`) and whether that device has sent a position or heartbeat within the last 180 seconds (`online`).",
+        "responses": {
+          "200": {
+            "description": "The roster.",
+            "content": { "application/json": {
+              "schema": { "type": "array", "items": { "$ref": "#/components/schemas/StudentSummary" } },
+              "example": [
+                { "reg_no": "U19CO1011", "name": "Delight Iworima", "programme": "Computer Engineering", "level": "500", "faculty": "Faculty of Engineering", "session": "2024/2025", "hall": "Suleiman Hall", "phone": "0803 000 1011", "has_device": true, "online": true, "last_seen": "2026-07-19T21:23:52+00:00" },
+                { "reg_no": "U19CO1007", "name": "Aisha Bello", "programme": "Computer Engineering", "level": "500", "faculty": "Faculty of Engineering", "session": "2024/2025", "hall": "Amina Hall", "phone": "0806 000 1007", "has_device": false, "online": false, "last_seen": null }
+              ]
+            } }
+          }
+        }
+      }
+    },
+    "/api/student/{reg_no}": {
+      "get": {
+        "tags": ["Students"],
+        "summary": "Get one student",
+        "description": "Returns a single student's details plus their latest location reading (`latest`, or `null` if they have no device or no fixes yet).",
+        "parameters": [ { "$ref": "#/components/parameters/RegNo" } ],
+        "responses": {
+          "200": {
+            "description": "The student.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StudentDetail" } } }
+          },
+          "404": {
+            "description": "No student with that registration number.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" },
+              "example": { "error": "unknown registration number" } } }
+          }
+        }
+      }
+    },
+    "/api/student/{reg_no}/recent": {
+      "get": {
+        "tags": ["Telemetry"],
+        "summary": "Recent locations (sampled trail)",
+        "description": "The device posts roughly every 5 seconds, so raw points are nearly identical. This endpoint samples the readings ~`gap` seconds apart (newest first) so the result is a readable trail of distinct places. Each point carries `moved_m`: metres between it and the next-older point.",
+        "parameters": [
+          { "$ref": "#/components/parameters/RegNo" },
+          { "name": "limit", "in": "query", "description": "Maximum points to return.", "required": false, "schema": { "type": "integer", "default": 5 } },
+          { "name": "gap", "in": "query", "description": "Minimum spacing between returned points, in seconds.", "required": false, "schema": { "type": "integer", "default": 30 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent sampled readings (empty array if the student has no device).",
+            "content": { "application/json": {
+              "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Reading" } }
+            } }
+          }
+        }
+      }
+    },
+    "/api/student/{reg_no}/track": {
+      "get": {
+        "tags": ["Telemetry"],
+        "summary": "Route playback and movement statistics",
+        "description": "Returns a refined day route for playback, detected stops, plus distance, moving/stopped time and speed. The server rejects poor satellite fixes and implausible jumps, separates sessions after long gaps, and adaptively smooths display coordinates. Original coordinates remain available as `raw_lat` and `raw_lng`; SQLite data is never overwritten.",
+        "parameters": [
+          { "$ref": "#/components/parameters/RegNo" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 5000, "default": 1000 } },
+          { "name": "date", "in": "query", "required": false, "description": "Lagos calendar day to replay.", "schema": { "type": "string", "format": "date", "example": "2026-08-30" } },
+          { "name": "session", "in": "query", "required": false, "description": "Walk number returned in refinement.sessions, or all.", "schema": { "oneOf": [ { "type": "integer", "minimum": 0 }, { "type": "string", "enum": ["all"] } ], "default": "all" } }
+        ],
+        "responses": {
+          "200": { "description": "Chronological GPS points and calculated movement statistics." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/api/student/{reg_no}/track.csv": {
+      "get": {
+        "tags": ["Telemetry"],
+        "summary": "Download the refined route as CSV",
+        "description": "Exports capture time, original and refined coordinates, quality, session, distance and whether a row was forwarded from the card's saved queue.",
+        "parameters": [
+          { "$ref": "#/components/parameters/RegNo" },
+          { "name": "date", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } },
+          { "name": "session", "in": "query", "required": false, "schema": { "type": "string", "default": "all" } }
+        ],
+        "responses": { "200": { "description": "CSV file.", "content": { "text/csv": { "schema": { "type": "string" } } } } }
+      }
+    },
+    "/api/student/{reg_no}/report.pdf": {
+      "get": {
+        "tags": ["Telemetry"],
+        "summary": "Download a printable tracking report",
+        "description": "Builds a PDF containing student identity, route totals, stop periods and refined coordinates.",
+        "parameters": [
+          { "$ref": "#/components/parameters/RegNo" },
+          { "name": "date", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } },
+          { "name": "session", "in": "query", "required": false, "schema": { "type": "string", "default": "all" } }
+        ],
+        "responses": { "200": { "description": "PDF file.", "content": { "application/pdf": { "schema": { "type": "string", "format": "binary" } } } } }
+      }
+    },
+    "/api/geofence": {
+      "get": {
+        "tags": ["Safety"], "summary": "Read the safety zone",
+        "responses": { "200": { "description": "Current centre, radius, enabled state and latest inside/outside result." } }
+      },
+      "post": {
+        "tags": ["Safety"], "summary": "Configure the safety zone",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Geofence" } } } },
+        "responses": { "200": { "description": "Saved zone." }, "400": { "$ref": "#/components/responses/BadRequest" } }
+      }
+    },
+    "/api/alerts": {
+      "get": {
+        "tags": ["Safety"], "summary": "List recent boundary crossings",
+        "parameters": [ { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 20 } } ],
+        "responses": { "200": { "description": "Newest alerts first." } }
+      }
+    },
+    "/api/alerts/{alert_id}/acknowledge": {
+      "post": {
+        "tags": ["Safety"], "summary": "Mark an alert as reviewed",
+        "parameters": [ { "name": "alert_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Alert acknowledged." }, "404": { "description": "Alert not found." } }
+      }
+    },
+    "/api/system/health": {
+      "get": {
+        "tags": ["System"], "summary": "Run presentation readiness checks",
+        "description": "Checks the Flask server, SQLite database, ngrok tunnel, card freshness, latest position and local offline files.",
+        "responses": { "200": { "description": "One result per system part." } }
+      }
+    },
+    "/api/ping/{reg_no}": {
+      "get": {
+        "tags": ["Students"],
+        "summary": "Check a student's device status",
+        "description": "Reports whether a device is assigned and whether it has posted within the online window, along with the latest reading. This is a server-side freshness check, not a command sent to the card; the legacy route name is retained for compatibility.",
+        "parameters": [ { "$ref": "#/components/parameters/RegNo" } ],
+        "responses": {
+          "200": {
+            "description": "Ping result.",
+            "content": { "application/json": {
+              "schema": { "$ref": "#/components/schemas/PingResult" },
+              "examples": {
+                "online": { "summary": "Device online", "value": { "has_device": true, "online": true, "card_id": "CARD01", "last_seen": "2026-07-19T21:23:52+00:00", "message": "Device is online and reporting." } },
+                "noDevice": { "summary": "No device assigned", "value": { "has_device": false, "online": false, "message": "No tracking device is assigned to this student." } }
+              }
+            } }
+          },
+          "404": {
+            "description": "No student with that registration number.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/activity": {
+      "get": {
+        "tags": ["Telemetry"],
+        "summary": "Recent activity feed",
+        "description": "The most recent location updates across all devices, each tagged with the student it belongs to. Powers the Activity log and the dashboard's recent-activity panel.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "How many recent events to return.", "required": false, "schema": { "type": "integer", "default": 30 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent readings, newest first.",
+            "content": { "application/json": {
+              "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Reading" } }
+            } }
+          }
+        }
+      }
+    },
+    "/api/history": {
+      "get": {
+        "tags": ["Telemetry"],
+        "summary": "Location history for one card",
+        "description": "Raw readings for a given card id, oldest-to-newest, used to redraw the map trail when the live page loads.",
+        "parameters": [
+          { "name": "card_id", "in": "query", "description": "Device/card identifier.", "required": false, "schema": { "type": "string", "default": "CARD01" } },
+          { "name": "limit", "in": "query", "description": "Maximum readings to return.", "required": false, "schema": { "type": "integer", "default": 200 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Readings in chronological order.",
+            "content": { "application/json": {
+              "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Reading" } }
+            } }
+          }
+        }
+      }
+    },
+    "/api/ingest": {
+      "post": {
+        "security": [ { "deviceKey": [] } ],
+        "tags": ["Device"],
+        "summary": "Report a GPS position (device → server)",
+        "description": "The tracking card calls this over 4G every few seconds using its `X-Device-Key`. The server validates the card identity, coordinates and telemetry, stores the reading, and pushes it to authenticated dashboards. If LTE was temporarily unavailable, the card forwards its saved packet with `buffered: true` and the original `captured_epoch`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IngestBody" },
+              "example": { "card_id": "CARD01", "lat": 11.152300, "lng": 7.653200, "sats": 8, "hdop": 1.1, "batt_mv": 4020, "seq": 128, "rssi": 24, "snr": 0, "src": "gps", "acc": 0, "age_s": 0, "captured_epoch": 1788080400, "buffered": false }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted and broadcast.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" } } },
+              "example": { "ok": true } } }
+          },
+          "400": {
+            "description": "Body was not JSON with numeric lat/lng.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" },
+              "example": { "error": "body must contain card_id, lat and lng" } } }
+          },
+          "401": { "description": "Missing or invalid device credential." },
+          "403": { "description": "Unknown card identifier." },
+          "429": { "description": "The card is reporting faster than the accepted interval." }
+        }
+      }
+    },
+    "/api/heartbeat": {
+      "post": {
+        "security": [ { "deviceKey": [] } ],
+        "tags": ["Device"],
+        "summary": "Report that the card is online without claiming a position",
+        "description": "Used when the SIM and LTE connection are working but neither a trustworthy satellite fix nor a cell-tower position is available. This keeps device connectivity separate from position availability.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": {
+            "schema": { "$ref": "#/components/schemas/HeartbeatBody" },
+            "example": { "card_id": "CARD01", "batt_mv": 0, "seq": 129, "rssi": 29 }
+          } }
+        },
+        "responses": {
+          "200": { "description": "Heartbeat accepted." },
+          "400": { "description": "Invalid heartbeat body or telemetry." },
+          "401": { "description": "Missing or invalid device credential." },
+          "403": { "description": "Unknown card identifier." },
+          "429": { "description": "The card is reporting faster than the accepted interval." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Flask session cookie created by POST /login."
+      },
+      "deviceKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Device-Key",
+        "description": "Per-device ingestion credential. The presentation build uses a replaceable demo value."
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "A staff session is required."
+      },
+      "BadRequest": {
+        "description": "A query parameter or request value is invalid."
+      }
+    },
+    "parameters": {
+      "RegNo": {
+        "name": "reg_no", "in": "path", "required": true,
+        "description": "Student registration number, e.g. U19CO1011.",
+        "schema": { "type": "string" }, "example": "U19CO1011"
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object", "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string", "example": "admin" },
+          "password": { "type": "string", "format": "password", "example": "abu2026" }
+        }
+      },
+      "LoginSuccess": {
+        "type": "object",
+        "properties": { "ok": { "type": "boolean" }, "redirect": { "type": "string" } }
+      },
+      "LoginError": {
+        "type": "object",
+        "properties": { "ok": { "type": "boolean" }, "error": { "type": "string" } }
+      },
+      "Error": {
+        "type": "object", "properties": { "error": { "type": "string" } }
+      },
+      "StudentSummary": {
+        "type": "object",
+        "properties": {
+          "reg_no": { "type": "string", "example": "U19CO1011" },
+          "name": { "type": "string", "example": "Delight Iworima" },
+          "programme": { "type": "string", "example": "Computer Engineering" },
+          "level": { "type": "string", "example": "500" },
+          "faculty": { "type": "string", "example": "Faculty of Engineering" },
+          "session": { "type": "string", "example": "2024/2025" },
+          "hall": { "type": "string", "example": "Suleiman Hall" },
+          "phone": { "type": "string", "example": "0803 000 1011" },
+          "has_device": { "type": "boolean", "description": "A tracking card is assigned to this student." },
+          "online": { "type": "boolean", "description": "The card has sent a location or heartbeat within the last 180 seconds." },
+          "last_seen": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "StudentDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/StudentSummary" },
+          { "type": "object", "properties": {
+            "card_id": { "type": "string", "nullable": true, "description": "Assigned tracker identifier." },
+            "device_last_seen": { "type": "string", "format": "date-time", "nullable": true, "description": "Most recent location or heartbeat receive time." },
+            "device_status": { "allOf": [ { "$ref": "#/components/schemas/DeviceStatus" } ], "nullable": true },
+            "latest": { "allOf": [ { "$ref": "#/components/schemas/Reading" } ], "nullable": true, "description": "Most recent reading, or null." }
+          } }
+        ]
+      },
+      "Reading": {
+        "type": "object",
+        "description": "One GPS position report.",
+        "properties": {
+          "id": { "type": "integer", "description": "Row id in the readings table." },
+          "card_id": { "type": "string", "example": "CARD01" },
+          "reg_no": { "type": "string", "nullable": true, "description": "Student this card belongs to (on enriched responses)." },
+          "name": { "type": "string", "nullable": true, "description": "Student name (activity feed only)." },
+          "lat": { "type": "number", "format": "double", "example": 11.152300 },
+          "lng": { "type": "number", "format": "double", "example": 7.653200 },
+          "raw_lat": { "type": "number", "format": "double", "nullable": true, "description": "Original latitude before route-only smoothing." },
+          "raw_lng": { "type": "number", "format": "double", "nullable": true, "description": "Original longitude before route-only smoothing." },
+          "segment": { "type": "integer", "nullable": true, "description": "Tracking-session number; the UI never joins different segments." },
+          "sats": { "type": "integer", "nullable": true, "description": "GPS satellites in the fix." },
+          "hdop": { "type": "number", "nullable": true, "description": "Horizontal dilution of precision (lower is better)." },
+          "batt_mv": { "type": "integer", "nullable": true, "description": "Battery voltage in millivolts." },
+          "seq": { "type": "integer", "nullable": true, "description": "Packet sequence number from the card." },
+          "rssi": { "type": "integer", "nullable": true, "description": "Cellular signal quality (CSQ 0–31)." },
+          "snr": { "type": "number", "nullable": true },
+          "ts": { "type": "string", "format": "date-time", "description": "Server receive time (UTC)." },
+          "device_ts": { "type": "string", "format": "date-time", "nullable": true, "description": "Time the board captured the position." },
+          "capture_ts": { "type": "string", "format": "date-time", "nullable": true, "description": "Capture time selected for ordered playback." },
+          "buffered": { "type": "integer", "enum": [0, 1], "description": "1 when the card saved this packet during an outage and forwarded it later." },
+          "src": { "type": "string", "enum": ["gps", "gps_hold", "ble", "cell", "test"] },
+          "moved_m": { "type": "integer", "nullable": true, "description": "Metres from the next-older point (recent-trail responses only)." }
+        }
+      },
+      "IngestBody": {
+        "type": "object", "required": ["card_id", "lat", "lng", "src"],
+        "properties": {
+          "card_id": { "type": "string", "enum": ["CARD01"] },
+          "lat": { "type": "number", "format": "double", "minimum": -90, "maximum": 90 },
+          "lng": { "type": "number", "format": "double", "minimum": -180, "maximum": 180 },
+          "src": { "type": "string", "enum": ["gps", "gps_hold", "ble", "cell", "test"] },
+          "sats": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "hdop": { "type": "number", "minimum": 0, "maximum": 100 },
+          "batt_mv": {
+            "description": "Battery voltage in millivolts. A value of 0 means that no battery reading is available, such as during USB-only power.",
+            "oneOf": [
+              { "type": "integer", "enum": [0] },
+              { "type": "integer", "minimum": 2500, "maximum": 5500 }
+            ]
+          },
+          "seq": { "type": "integer", "minimum": 0 },
+          "rssi": { "type": "integer", "minimum": -1, "maximum": 99, "description": "Cellular signal quality." },
+          "snr": { "type": "number", "minimum": -100, "maximum": 100 },
+          "acc": { "type": "integer", "minimum": 0, "maximum": 100000 },
+          "age_s": { "type": "integer", "minimum": 0, "maximum": 86400 },
+          "captured_epoch": { "type": "integer", "minimum": 1704067200, "description": "UTC Unix time when the position was captured." },
+          "buffered": { "type": "boolean", "default": false, "description": "True only when forwarding a packet saved during a temporary outage." }
+        }
+      },
+      "HeartbeatBody": {
+        "type": "object", "required": ["card_id"],
+        "properties": {
+          "card_id": { "type": "string", "enum": ["CARD01"] },
+          "batt_mv": {
+            "description": "Battery voltage in millivolts; 0 means unavailable during USB-only power.",
+            "oneOf": [
+              { "type": "integer", "enum": [0] },
+              { "type": "integer", "minimum": 2500, "maximum": 5500 }
+            ]
+          },
+          "seq": { "type": "integer", "minimum": 0 },
+          "rssi": { "type": "integer", "minimum": -1, "maximum": 99 }
+        }
+      },
+      "DeviceStatus": {
+        "type": "object",
+        "properties": {
+          "card_id": { "type": "string" },
+          "last_seen": { "type": "string", "format": "date-time" },
+          "rssi": { "type": "integer", "nullable": true },
+          "batt_mv": { "type": "integer", "nullable": true },
+          "seq": { "type": "integer", "nullable": true }
+        }
+      },
+      "Geofence": {
+        "type": "object",
+        "required": ["name", "center_lat", "center_lng", "radius_m", "enabled"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 60 },
+          "center_lat": { "type": "number", "minimum": -90, "maximum": 90 },
+          "center_lng": { "type": "number", "minimum": -180, "maximum": 180 },
+          "radius_m": { "type": "integer", "minimum": 25, "maximum": 5000 },
+          "enabled": { "type": "boolean" }
+        }
+      },
+      "PingResult": {
+        "type": "object",
+        "properties": {
+          "has_device": { "type": "boolean" },
+          "online": { "type": "boolean" },
+          "card_id": { "type": "string", "nullable": true },
+          "last_seen": { "type": "string", "format": "date-time", "nullable": true },
+          "latest": { "allOf": [ { "$ref": "#/components/schemas/Reading" } ], "nullable": true },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}

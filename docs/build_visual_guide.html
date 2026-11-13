@@ -1,0 +1,421 @@
+<meta charset="UTF-8">
+<title>SIID-01 — Visual Build Guide</title>
+<style>
+  :root{
+    --ink:#1b1f27; --paper:#eef2ec; --panel:#ffffff; --line:#c9d0c2;
+    --muted:#5c6560;
+    --accent:#b5661f; --accent2:#3c6e8f;
+    --good:#3c7a54; --good-soft:#dcebe1;
+    --warn:#a9791f; --warn-soft:#f0e4c4;
+    --crit:#a8402f; --crit-soft:#f1d8d2;
+    --pcb-green:#245c43; --pcb-dark:#18382a; --shield:#b9c0c6; --shield-line:#8e969c;
+    --gold:#c9a24a; --usb:#c7ccd0; --jst:#e7e2d5;
+    --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+    --serif: Charter, "Iowan Old Style", Georgia, Cambria, serif;
+    --fig-bg:#f6f4ee; --fig-ink:#1b1f27; --fig-line:#cbcabf; --fig-muted:#6b6f68;
+  }
+  :root[data-theme="dark"]{
+    --ink:#e9ece3; --paper:#12151b; --panel:#1b2028; --line:#2d3440; --muted:#9aa39c;
+    --accent:#dd9153; --accent2:#78b0d0;
+    --good:#69b58a; --good-soft:#1e2f24;
+    --warn:#d1a94a; --warn-soft:#33290f;
+    --crit:#dd7b6a; --crit-soft:#33201b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e9ece3; --paper:#12151b; --panel:#1b2028; --line:#2d3440; --muted:#9aa39c;
+      --accent:#dd9153; --accent2:#78b0d0;
+      --good:#69b58a; --good-soft:#1e2f24;
+      --warn:#d1a94a; --warn-soft:#33290f;
+      --crit:#dd7b6a; --crit-soft:#33201b;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--serif);
+    line-height:1.55;margin:0;padding:0 20px 90px;}
+  .sheet{max-width:1000px;margin:0 auto;}
+
+  header.top{border:1.5px solid var(--ink);padding:20px 24px;margin-top:32px;
+    display:grid;grid-template-columns:1fr auto;gap:6px 24px;}
+  header.top h1{font-family:var(--mono);text-transform:uppercase;letter-spacing:0.04em;
+    font-size:1.4rem;margin:0;grid-column:1/2;text-wrap:balance;}
+  header.top .sub{font-family:var(--mono);font-size:0.82rem;color:var(--accent);grid-column:1/2;}
+  header.top .meta{font-family:var(--mono);font-size:0.72rem;text-align:right;
+    line-height:1.8;white-space:nowrap;grid-column:2/3;color:var(--muted);}
+
+  h2{font-family:var(--mono);text-transform:uppercase;letter-spacing:0.03em;
+    font-size:1.02rem;border-bottom:1.5px solid var(--ink);padding-bottom:6px;margin:54px 0 8px;}
+  h2 .n{color:var(--accent);margin-right:10px;}
+  .lead{max-width:72ch;color:var(--muted);margin:8px 0 22px;font-size:0.97rem;}
+
+  figure{margin:0 0 8px;}
+  .fig{background:var(--fig-bg);border:1px solid var(--fig-line);border-radius:8px;
+    padding:14px;overflow-x:auto;}
+  .fig svg{display:block;width:100%;height:auto;min-width:640px;}
+  figcaption{font-family:var(--mono);font-size:0.72rem;color:var(--muted);
+    margin-top:8px;letter-spacing:0.02em;}
+
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
+  .part{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .part.hero{grid-column:1/-1;}
+  .part .art{background:var(--fig-bg);border-bottom:1px solid var(--fig-line);}
+  .part .art svg{display:block;width:100%;height:auto;}
+  .part .body{padding:10px 12px 12px;}
+  .part .body h3{font-family:var(--mono);font-size:0.82rem;margin:0 0 3px;}
+  .part .body .role{font-size:0.85rem;color:var(--muted);margin:0;}
+
+  .checkgrid{display:grid;gap:10px;}
+  .chk{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;
+    background:var(--panel);border:1px solid var(--line);border-left-width:3px;border-radius:6px;padding:11px 14px;}
+  .chk.ok{border-left-color:var(--good);}
+  .chk.warn{border-left-color:var(--warn);}
+  .chk .tag{font-family:var(--mono);font-size:0.62rem;text-transform:uppercase;
+    padding:3px 7px;border-radius:3px;height:fit-content;white-space:nowrap;letter-spacing:0.03em;}
+  .chk.ok .tag{background:var(--good-soft);color:var(--good);}
+  .chk.warn .tag{background:var(--warn-soft);color:var(--warn);}
+  .chk .txt{font-size:0.93rem;}
+  .chk .txt b{font-family:var(--mono);font-size:0.85rem;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-family:var(--mono);
+    font-size:0.72rem;margin:10px 2px 0;color:var(--fig-muted);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:16px;height:4px;border-radius:2px;display:inline-block;}
+
+  .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:6px;padding:12px 16px;max-width:74ch;font-size:0.93rem;margin:14px 0;}
+  .note b{color:var(--accent);}
+  footer{margin-top:64px;padding-top:14px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:0.7rem;color:var(--muted);}
+</style>
+
+<div class="sheet">
+  <header class="top">
+    <h1>SIID-01 Visual Build Guide</h1>
+    <div class="sub">One board &middot; setup &middot; the check &middot; finished product</div>
+    <div class="meta">
+      DOC SIID&#8209;01 / FIG&#8209;A<br>
+      LilyGO T&#8209;A7670E (4G)<br>
+      all&#8209;in&#8209;one board<br>
+      ABU Zaria &middot; 2026&#8209;07&#8209;08
+    </div>
+  </header>
+
+  <!-- ============================================================= -->
+  <h2><span class="n">01</span>The parts (there are only four)</h2>
+  <p class="lead">The main board integrates the ESP32, the 4G LTE modem, the SIM slot, the GPS and
+  the battery charger. So the whole card is really just this board plus a battery, a SIM, and two
+  antennas.</p>
+
+  <div class="gallery">
+
+    <!-- LilyGO board (hero) -->
+    <div class="part hero"><div class="art">
+      <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LilyGO T-A7670E board">
+        <style>.bl{font-family:var(--mono);font-size:10px;fill:#dfe8e2;} .bd{font-family:var(--mono);font-size:9px;fill:#33403a;}</style>
+        <rect x="60" y="40" width="600" height="220" rx="12" fill="var(--pcb-green)"/>
+        <!-- ESP32 shield -->
+        <rect x="90" y="80" width="120" height="130" rx="4" fill="var(--shield)" stroke="var(--shield-line)" stroke-width="2"/>
+        <text x="150" y="150" class="bd" text-anchor="middle">ESP32</text>
+        <text x="150" y="164" class="bd" text-anchor="middle">WROVER</text>
+        <!-- A7670 modem -->
+        <rect x="240" y="70" width="150" height="150" rx="4" fill="var(--shield)" stroke="var(--shield-line)" stroke-width="2"/>
+        <text x="315" y="140" class="bd" text-anchor="middle">A7670</text>
+        <text x="315" y="156" class="bd" text-anchor="middle">4G LTE</text>
+        <!-- nano SIM slot -->
+        <rect x="240" y="228" width="90" height="26" rx="2" fill="#cfd4d8"/>
+        <text x="285" y="245" class="bd" text-anchor="middle">nano SIM</text>
+        <!-- GNSS (inside the modem) -->
+        <rect x="420" y="150" width="60" height="46" rx="3" fill="#1f2a25"/>
+        <text x="450" y="177" class="bl" text-anchor="middle">GPS</text>
+        <text x="450" y="212" class="bl" text-anchor="middle">GNSS</text>
+        <!-- u.FL antenna connectors -->
+        <circle cx="440" cy="72" r="10" fill="#d9b24a"/><circle cx="440" cy="72" r="4" fill="#5b4a1e"/>
+        <text x="440" y="58" class="bl" text-anchor="middle">MAIN</text>
+        <circle cx="510" cy="72" r="10" fill="#d9b24a"/><circle cx="510" cy="72" r="4" fill="#5b4a1e"/>
+        <text x="510" y="58" class="bl" text-anchor="middle">GPS</text>
+        <!-- USB-C bottom -->
+        <rect x="130" y="252" width="40" height="16" rx="6" fill="var(--usb)"/>
+        <text x="150" y="284" class="bd" text-anchor="middle" fill="var(--fig-muted)">USB-C</text>
+        <!-- JST battery -->
+        <rect x="560" y="150" width="70" height="30" rx="3" fill="var(--jst)"/>
+        <text x="595" y="169" class="bd" text-anchor="middle">BAT JST</text>
+        <!-- buttons -->
+        <circle cx="590" cy="80" r="9" fill="#2c3a33" stroke="#12211b" stroke-width="1.5"/>
+        <circle cx="620" cy="80" r="9" fill="#2c3a33" stroke="#12211b" stroke-width="1.5"/>
+        <!-- pin headers -->
+        <g fill="var(--gold)">
+          <rect x="80" y="40" width="6" height="10"/><rect x="100" y="40" width="6" height="10"/><rect x="120" y="40" width="6" height="10"/>
+          <rect x="80" y="250" width="6" height="10"/><rect x="100" y="250" width="6" height="10"/>
+        </g>
+      </svg>
+    </div><div class="body">
+      <h3>LilyGO T-A7670E board</h3>
+      <p class="role">The whole card: ESP32 + 4G LTE modem (with built-in GNSS) + SIM slot + battery charger, all on one PCB.</p>
+    </div></div>
+
+    <!-- LiPo -->
+    <div class="part"><div class="art">
+      <svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LiPo battery with JST">
+        <rect x="50" y="42" width="140" height="66" rx="7" fill="#9aa1a6" stroke="#7f868c" stroke-width="2"/>
+        <text x="120" y="80" font-family="var(--mono)" font-size="10" fill="#40454a" text-anchor="middle">LiPo 3.7V</text>
+        <path d="M50 62 H26" stroke="#cf3b32" stroke-width="4"/>
+        <path d="M50 88 H26" stroke="#2a2d31" stroke-width="4"/>
+        <rect x="14" y="60" width="14" height="30" rx="2" fill="var(--jst)"/>
+        <text x="21" y="112" font-family="var(--mono)" font-size="7" fill="var(--fig-muted)" text-anchor="middle">JST</text>
+      </svg>
+    </div><div class="body">
+      <h3>LiPo battery</h3>
+      <p class="role">Plugs into the onboard JST. Charges over the board's USB-C.</p>
+    </div></div>
+
+    <!-- nano SIM -->
+    <div class="part"><div class="art">
+      <svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="nano SIM card">
+        <path d="M78 44 h70 a6 6 0 0 1 6 6 v50 a6 6 0 0 1 -6 6 h-84 v-52 z" fill="#e8b84b" stroke="#b98f2c" stroke-width="2"/>
+        <g stroke="#b98f2c" stroke-width="1.5" fill="none">
+          <rect x="82" y="58" width="60" height="38" rx="3" fill="#d9a838"/>
+          <path d="M112 58 V96 M82 77 H142"/>
+        </g>
+        <text x="112" y="128" font-family="var(--mono)" font-size="8" fill="var(--fig-muted)" text-anchor="middle">nano data SIM (4G)</text>
+      </svg>
+    </div><div class="body">
+      <h3>Data SIM</h3>
+      <p class="role">4G-enabled nano SIM (MTN/Airtel/Glo). Set its APN in the firmware.</p>
+    </div></div>
+
+    <!-- Antennas -->
+    <div class="part"><div class="art">
+      <svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LTE and GPS antennas">
+        <!-- antenna 1 -->
+        <rect x="70" y="40" width="10" height="70" rx="5" fill="#26292e"/>
+        <circle cx="75" cy="118" r="8" fill="#d9b24a"/><circle cx="75" cy="118" r="3" fill="#5b4a1e"/>
+        <text x="75" y="140" font-family="var(--mono)" font-size="7.5" fill="var(--fig-muted)" text-anchor="middle">LTE</text>
+        <!-- antenna 2 -->
+        <rect x="160" y="40" width="10" height="70" rx="5" fill="#26292e"/>
+        <circle cx="165" cy="118" r="8" fill="#d9b24a"/><circle cx="165" cy="118" r="3" fill="#5b4a1e"/>
+        <text x="165" y="140" font-family="var(--mono)" font-size="7.5" fill="var(--fig-muted)" text-anchor="middle">GPS</text>
+      </svg>
+    </div><div class="body">
+      <h3>Two antennas</h3>
+      <p class="role">LTE → MAIN connector, GPS → GPS connector. Both usually ship with the board.</p>
+    </div></div>
+
+  </div>
+
+  <!-- ============================================================= -->
+  <h2><span class="n">02</span>How it couples — no wiring, just four attach points</h2>
+  <p class="lead">Because the electronics are all onboard, "assembly" is attaching four things to the
+  one board. The blocks inside the dashed outline are already connected on the PCB.</p>
+
+  <figure><div class="fig">
+    <svg viewBox="0 0 920 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Attach-point diagram">
+      <style>
+        .lbl{font-family:var(--mono);font-size:12px;fill:var(--fig-ink);}
+        .sm{font-family:var(--mono);font-size:10px;fill:var(--fig-muted);}
+        .bl{font-family:var(--mono);font-size:10px;fill:#dfe8e2;}
+        .a{fill:none;stroke:var(--accent);stroke-width:3;stroke-dasharray:2 6;stroke-linecap:round;}
+      </style>
+
+      <!-- board with onboard blocks -->
+      <rect x="250" y="120" width="420" height="220" rx="14" fill="var(--pcb-green)"/>
+      <text x="460" y="112" class="sm" text-anchor="middle">LilyGO T-A7670E &mdash; everything below is already connected on the board</text>
+      <rect x="245" y="115" width="430" height="230" rx="16" fill="none" stroke="var(--fig-line)" stroke-width="1.5" stroke-dasharray="6 5"/>
+
+      <rect x="275" y="150" width="95" height="80" rx="4" fill="var(--shield)"/><text x="322" y="195" class="lbl" text-anchor="middle" fill="#33403a">ESP32</text>
+      <rect x="390" y="150" width="110" height="80" rx="4" fill="var(--shield)"/><text x="445" y="188" class="lbl" text-anchor="middle" fill="#33403a">A7670</text><text x="445" y="203" class="sm" text-anchor="middle" fill="#33403a">4G LTE</text>
+      <rect x="520" y="150" width="70" height="50" rx="3" fill="#1f2a25"/><text x="555" y="180" class="bl" text-anchor="middle">GPS</text>
+      <rect x="390" y="250" width="90" height="26" rx="2" fill="#cfd4d8"/><text x="435" y="267" class="sm" text-anchor="middle" fill="#33403a">SIM slot</text>
+
+      <!-- attach point: SIM -->
+      <path class="a" d="M175 265 H388"/>
+      <path d="M120 250 h48 a5 5 0 0 1 5 5 v20 a5 5 0 0 1 -5 5 h-58 v-22 z" fill="#e8b84b" stroke="#b98f2c" stroke-width="1.5"/>
+      <text x="130" y="238" class="lbl">1 &middot; insert SIM</text>
+
+      <!-- attach point: battery -->
+      <rect x="95" y="360" width="90" height="40" rx="6" fill="#9aa1a6" stroke="#7f868c" stroke-width="1.5"/>
+      <text x="140" y="385" class="sm" text-anchor="middle" fill="#33383d">LiPo</text>
+      <text x="95" y="350" class="lbl">2 &middot; plug in battery (JST)</text>
+      <path class="a" d="M185 380 H620 V300 h-30"/>
+      <rect x="600" y="250" width="55" height="26" rx="3" fill="var(--jst)"/><text x="627" y="267" class="sm" text-anchor="middle" fill="#33403a">JST</text>
+
+      <!-- attach points: antennas -->
+      <text x="470" y="40" class="lbl" text-anchor="middle">3 &middot; screw on both antennas</text>
+      <circle cx="430" cy="150" r="9" fill="#d9b24a"/><circle cx="430" cy="150" r="3" fill="#5b4a1e"/>
+      <circle cx="560" cy="150" r="9" fill="#d9b24a"/><circle cx="560" cy="150" r="3" fill="#5b4a1e"/>
+      <rect x="425" y="55" width="10" height="55" rx="5" fill="#26292e"/><path class="a" d="M430 110 V141"/><text x="430" y="50" class="sm" text-anchor="middle">LTE&#8594;MAIN</text>
+      <rect x="555" y="55" width="10" height="55" rx="5" fill="#26292e"/><path class="a" d="M560 110 V141"/><text x="560" y="50" class="sm" text-anchor="middle">GPS&#8594;GPS</text>
+
+      <!-- attach point: USB -->
+      <rect x="330" y="330" width="40" height="16" rx="6" fill="var(--usb)"/>
+      <path class="a" d="M350 360 V400 H470"/>
+      <text x="480" y="404" class="lbl">4 &middot; USB-C to laptop (flash + charge)</text>
+    </svg>
+  </div>
+  <figcaption>FIG-A2 · Insert SIM → plug in battery → attach LTE + GPS antennas → USB to laptop. No breadboard, no solder for the electronics.</figcaption>
+  </figure>
+
+  <div class="note"><b>That's the whole hardware build.</b> Everything the old plan wired by hand
+  &mdash; the modem, GPS, charger, power capacitor &mdash; is already on this board and connected
+  internally. The firmware just talks to it.</div>
+
+  <!-- ============================================================= -->
+  <h2><span class="n">03</span>The check</h2>
+  <p class="lead">I matched the firmware to LilyGO's official board definition and datasheets.
+  Four things pass; three are for you to verify on the physical board.</p>
+
+  <div class="checkgrid">
+    <div class="chk ok"><span class="tag">pass</span><div class="txt">
+      <b>Pins match LilyGO's board file.</b> Firmware uses modem on <b>TX 26 / RX 27</b>, PWRKEY 4,
+      POWERON 12, RESET 5 — exactly the T-A7670 definition. GPS needs no GPIO: it is
+      <b>inside the modem</b>, queried with <b>AT+CGNSSPWR / AT+CGNSSINFO</b> over the same UART
+      (verified on the hardware &mdash; the external GPS pins produced 0 bytes).</div></div>
+
+    <div class="chk ok"><span class="tag">pass</span><div class="txt">
+      <b>4G band works in Nigeria.</b> The A7670E supports <b>B3 (1800&nbsp;MHz)</b>, the main band for
+      MTN / Airtel / 9mobile 4G — including in urban Zaria.</div></div>
+
+    <div class="chk ok"><span class="tag">pass</span><div class="txt">
+      <b>Power is handled onboard.</b> The board's charger + power design manage the modem's current
+      bursts, so there's no external capacitor or TP4056 to add.</div></div>
+
+    <div class="chk ok"><span class="tag">pass</span><div class="txt">
+      <b>Board target is set.</b> Flash as <b>"ESP32 Wrover Module"</b> with <b>TinyGSM (LilyGO's fork)</b>
+      + ArduinoHttpClient. Mainline TinyGSM has no A7670 support and will not compile.</div></div>
+
+    <div class="chk warn"><span class="tag">check</span><div class="txt">
+      <b>Confirm your board actually has GPS.</b> GNSS + the GPS antenna port exist only on the
+      <b>A7670E-with-GPS</b> variant. Look for a <b>second u.FL connector labelled GPS</b> and a second
+      antenna in the box. No GPS connector = no position source.</div></div>
+
+    <div class="chk warn"><span class="tag">check</span><div class="txt">
+      <b>Keep the LiPo plugged in.</b> The modem's transmit bursts need battery current — some boards
+      won't register on the network on USB power alone. The firmware already sets POWERON high and
+      pulses PWRKEY; if the modem still won't answer, flip <b>MODEM_RESET_LEVEL</b> and re-flash.</div></div>
+
+    <div class="chk warn"><span class="tag">check</span><div class="txt">
+      <b>SIM must be 4G-enabled + right APN.</b> Use a nano data SIM that browses 4G in a phone, and set
+      the matching <b>APN</b> in the firmware (MTN: <code>web.gprs.mtnnigeria.net</code>).</div></div>
+  </div>
+
+  <!-- ============================================================= -->
+  <h2><span class="n">04</span>Physical coupling — how it stacks</h2>
+  <p class="lead">Only two things stack: the board and the battery. Antennas face out toward the sky.</p>
+
+  <figure><div class="fig">
+    <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Assembly stack">
+      <style>
+        .sl{font-family:var(--mono);font-size:12px;fill:var(--fig-ink);}
+        .sm{font-family:var(--mono);font-size:10px;fill:var(--fig-muted);}
+        .gl{stroke:var(--fig-line);stroke-width:1;stroke-dasharray:4 4;}
+      </style>
+      <line class="gl" x1="150" y1="40" x2="150" y2="320"/>
+      <line class="gl" x1="470" y1="40" x2="470" y2="320"/>
+
+      <!-- Lid -->
+      <g transform="translate(150,50)">
+        <path d="M0 26 L160 0 L320 26 L160 52 Z" fill="#d9d4c6" stroke="#b6b09e" stroke-width="1.5"/>
+        <text x="340" y="26" class="sl">Lid (snaps on)</text>
+      </g>
+      <!-- antennas up -->
+      <g transform="translate(210,100)">
+        <path d="M0 16 L120 0 L240 16 L120 32 Z" fill="#2b2f34" stroke="#15181c" stroke-width="1.5"/>
+        <text x="120" y="20" class="sm" text-anchor="middle" fill="#cfd4d8">LTE + GPS antennas ▲ face the lid</text>
+      </g>
+      <!-- board -->
+      <g transform="translate(180,150)">
+        <path d="M0 30 L160 0 L320 30 L160 60 Z" fill="var(--pcb-green)" stroke="#163326" stroke-width="1.5"/>
+        <path d="M120 20 L180 10 L215 17 L155 27 Z" fill="var(--shield)"/>
+        <path d="M60 24 L110 15 L140 21 L90 30 Z" fill="var(--shield)"/>
+        <text x="330" y="30" class="sl">LilyGO T-A7670E board</text>
+      </g>
+      <!-- foam -->
+      <g transform="translate(200,205)">
+        <path d="M0 14 L140 0 L280 14 L140 28 Z" fill="#e7d9b8" stroke="#cbb98c" stroke-width="1.2"/>
+        <text x="300" y="16" class="sl">Foam tape</text>
+      </g>
+      <!-- battery -->
+      <g transform="translate(180,235)">
+        <path d="M0 28 L160 0 L320 28 L160 56 Z" fill="#9aa1a6" stroke="#7f868c" stroke-width="1.5"/>
+        <text x="160" y="32" class="sm" text-anchor="middle" fill="#33383d">LiPo battery</text>
+      </g>
+      <!-- tray -->
+      <g transform="translate(150,290)">
+        <path d="M0 26 L0 44 L160 70 L320 44 L320 26 L160 52 Z" fill="#c4bfae" stroke="#b6b09e" stroke-width="1.2"/>
+        <path d="M0 26 L160 0 L320 26 L160 52 Z" fill="#d9d4c6" stroke="#b6b09e" stroke-width="1.5"/>
+        <text x="340" y="40" class="sl">Case tray</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>FIG-A3 · Board on top (antennas facing the lid/sky), battery underneath on foam tape. USB-C port left reachable at the case edge for charging.</figcaption>
+  </figure>
+
+  <!-- ============================================================= -->
+  <h2><span class="n">05</span>The finished product</h2>
+  <p class="lead">Assembled, it's a lanyard/pocket badge printed as a student ID with a live-tracking
+  indicator. Shown next to a real credit card so the thickness is honest.</p>
+
+  <figure><div class="fig">
+    <svg viewBox="0 0 760 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Finished product mockup">
+      <style>
+        .cardt{font-family:var(--mono);fill:#20242b;}
+        .dim{font-family:var(--mono);font-size:11px;fill:var(--fig-muted);}
+      </style>
+      <path d="M250 8 C 230 60, 210 70, 214 96 L 236 96 C 240 70, 260 60, 280 8 Z" fill="var(--accent)" opacity="0.85"/>
+      <rect x="212" y="92" width="26" height="14" rx="3" fill="#6b6f68"/>
+
+      <g transform="translate(90,104)">
+        <rect x="0" y="0" width="300" height="200" rx="16" fill="#f3f1ea" stroke="#cfcabb" stroke-width="2"/>
+        <rect x="128" y="12" width="44" height="10" rx="5" fill="#d9d4c6" stroke="#bdb7a5" stroke-width="1"/>
+        <rect x="0" y="30" width="300" height="42" fill="var(--accent)"/>
+        <text x="150" y="49" class="cardt" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">AHMADU BELLO UNIVERSITY, ZARIA</text>
+        <text x="150" y="64" class="cardt" font-size="9" fill="#fbeadd" text-anchor="middle">FACULTY OF ENGINEERING · STUDENT IDENTITY</text>
+        <circle cx="42" cy="118" r="26" fill="#e7e2d5" stroke="var(--accent)" stroke-width="2"/>
+        <text x="42" y="122" class="cardt" font-size="8" fill="var(--accent)" text-anchor="middle">CREST</text>
+        <rect x="82" y="88" width="66" height="82" rx="4" fill="#dfe3dc" stroke="#c2c7bd" stroke-width="1.5"/>
+        <circle cx="115" cy="118" r="16" fill="#c2c7bd"/>
+        <path d="M95 168 c0 -20 40 -20 40 0" fill="#c2c7bd"/>
+        <text x="115" y="182" class="cardt" font-size="7" fill="#8a8f86" text-anchor="middle">PHOTO</text>
+        <g class="cardt" font-size="9" fill="#20242b">
+          <text x="164" y="100">NAME</text>
+          <text x="164" y="114" font-size="11" font-weight="bold">SURNAME, Firstname</text>
+          <text x="164" y="138">MATRIC NO.</text>
+          <text x="164" y="152" font-size="11" font-weight="bold">U19CO1089</text>
+          <text x="164" y="176">DEPT · Computer Engineering</text>
+        </g>
+        <g transform="translate(250,120)">
+          <circle cx="0" cy="0" r="6" fill="var(--good)"/>
+          <circle cx="0" cy="0" r="11" fill="none" stroke="var(--good)" stroke-width="1.5" opacity="0.5"/>
+          <path d="M-14 -20 a20 20 0 0 1 28 0" fill="none" stroke="var(--accent2)" stroke-width="2"/>
+          <path d="M-8 -14 a11 11 0 0 1 16 0" fill="none" stroke="var(--accent2)" stroke-width="2"/>
+          <text x="0" y="26" class="cardt" font-size="7.5" fill="var(--good)" text-anchor="middle">● LIVE</text>
+        </g>
+        <text x="150" y="192" class="cardt" font-size="7" fill="#9a9f95" text-anchor="middle">SIID-01 trackable card · property of ABU Zaria</text>
+      </g>
+      <text x="240" y="330" class="dim" text-anchor="middle">FRONT FACE (printed insert)</text>
+
+      <g transform="translate(470,120)">
+        <text x="90" y="-8" class="dim" text-anchor="middle">EDGE — honest thickness</text>
+        <rect x="20" y="10" width="150" height="28" rx="5" fill="#3a3f45"/>
+        <rect x="20" y="10" width="150" height="8" rx="4" fill="#f3f1ea"/>
+        <text x="95" y="29" class="dim" fill="#e7e2d5" text-anchor="middle" font-size="9">SIID-01 badge</text>
+        <path d="M182 10 V38" stroke="var(--fig-muted)" stroke-width="1"/>
+        <path d="M178 10 h8 M178 38 h8" stroke="var(--fig-muted)" stroke-width="1"/>
+        <text x="196" y="28" class="dim">≈ 16 mm</text>
+
+        <rect x="20" y="88" width="150" height="4" rx="2" fill="#b6b09e"/>
+        <text x="95" y="84" class="dim" text-anchor="middle" font-size="9">real ID card</text>
+        <path d="M182 88 V92" stroke="var(--fig-muted)" stroke-width="1"/>
+        <text x="196" y="94" class="dim">0.76 mm</text>
+
+        <text x="20" y="132" class="dim" font-size="9.5" fill="var(--fig-ink)">Thicker than a card because it</text>
+        <text x="20" y="148" class="dim" font-size="9.5" fill="var(--fig-ink)">holds a 4G board + battery.</text>
+        <text x="20" y="164" class="dim" font-size="9.5" fill="var(--fig-ink)">Present this as a deliberate</text>
+        <text x="20" y="180" class="dim" font-size="9.5" fill="var(--fig-ink)">trade-off in the report.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>FIG-A4 · Finished badge. The printed insert slides over the case; the green ● LIVE mark signals it is actively tracking. Fields shown are placeholders.</figcaption>
+  </figure>
+
+  <footer>SIID-01 / FIG-A · visual build guide · LilyGO T-A7670E build · illustrations are schematics, not photographs · 2026-07-08</footer>
+</div>

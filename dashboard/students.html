@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Students · ABU Student Tracking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/abu.css">
+<script defer src="/static/app.js"></script>
+<style>
+  .search{ position:relative; margin:4px 0 18px; }
+  .search svg{ position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--muted); }
+  .search input{ padding-left:44px; height:50px; font-size:1rem; }
+  .search .note{ position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:.76rem; color:var(--muted); }
+  .empty{ text-align:center; color:var(--muted); padding:38px; }
+
+  .overlay{ position:fixed; inset:0; background:rgba(6,40,22,.5); backdrop-filter:blur(3px); display:none; place-items:center; z-index:50; }
+  .overlay.show{ display:grid; animation:fadeup .2s ease; }
+  .ping-card{ background:var(--glass-strong); backdrop-filter:blur(20px); border:1px solid var(--glass-line); border-radius:18px; padding:34px 40px; text-align:center; box-shadow:var(--glass-shadow); max-width:340px; }
+  .radar{ width:110px; height:110px; margin:0 auto 16px; position:relative; }
+  .radar .core{ position:absolute; inset:50% auto auto 50%; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%; background:var(--green); }
+  .radar .ring{ position:absolute; inset:0; border-radius:50%; border:2px solid var(--green-600); opacity:0; animation:radar 1.8s ease-out infinite; }
+  .radar .ring:nth-child(2){ animation-delay:.6s; } .radar .ring:nth-child(3){ animation-delay:1.2s; }
+  @keyframes radar{ 0%{ transform:scale(.15); opacity:.8; } 100%{ transform:scale(1); opacity:0; } }
+  .ping-card h3{ margin:0 0 6px; font-size:1.15rem; font-weight:600; }
+  .ping-card p{ margin:0; color:var(--muted); font-size:.9rem; } .ping-card .reg{ color:var(--green-600); }
+  .ping-card.fail .radar{ display:none; } .ping-card .redo{ margin-top:16px; }
+</style>
+</head>
+<body class="app">
+<div class="shell">
+  <aside class="sidebar glass">
+    <div class="brand">
+      <img class="crest-img" src="/static/abu-logo.jpg" alt="Ahmadu Bello University, Zaria" onerror="this.onerror=null;this.src='/static/crest-fallback.svg'">
+      <div class="wordmark"><div class="u">ABU Zaria</div><div class="sys">Student Tracking</div></div>
+    </div>
+    <div class="nav-label">Menu</div>
+    <a class="nav-item" href="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+    <a class="nav-item active" href="/students"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Students</a>
+    <a class="nav-item" href="/live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Live Map</a>
+    <a class="nav-item" href="/activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Activity</a>
+    <a class="nav-item" href="/health"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h3l2-5 4 10 2-5h5"/><circle cx="12" cy="12" r="10"/></svg>System Health</a>
+    <a class="nav-item" href="/docs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>API Docs</a>
+    <div class="grow"></div>
+    <div class="side-user">
+      <div class="avatar gold" style="width:34px;height:34px;border-radius:9px;font-size:.76rem;">SA</div>
+      <div class="who"><b>Security Admin</b><br><span>Signed in</span></div>
+      <a href="/logout" title="Sign out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar glass"><div><h1>Students</h1><span class="sub">Computer Engineering · 500 Level · 2024/2025</span></div></header>
+    <div class="content">
+      <div class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input class="input" id="q" placeholder="Search by registration number, e.g. U19CO1011" autocomplete="off">
+        <span class="note" id="qnote"></span>
+      </div>
+      <div class="rows" id="list"></div>
+      <div class="empty" id="empty" style="display:none">No student matches that registration number.</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="ping-card" id="pingCard">
+    <div class="radar"><div class="core"></div><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
+    <h3 id="pingTitle">Pinging device&hellip;</h3>
+    <p id="pingMsg">Contacting <span class="reg" id="pingReg"></span></p>
+  </div>
+</div>
+
+<script>
+  const listEl=document.getElementById('list'), emptyEl=document.getElementById('empty');
+  let students=[];
+  const esc=value=>String(value??'').replace(/[&<>'"]/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
+  })[c]);
+  const initials=n=>n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const statusPill=s=> !s.has_device ? '<span class="pill none"><span class="dot"></span>No device</span>'
+    : s.online ? '<span class="pill live"><span class="dot"></span>Online</span>'
+    : '<span class="pill idle"><span class="dot"></span>Device offline</span>';
+
+  function render(){
+    listEl.innerHTML='';
+    students.forEach((s,i)=>{
+      const row=document.createElement('div'); row.className='row'; row.dataset.reg=s.reg_no;
+      row.style.animation='fadeup .35s ease both'; row.style.animationDelay=`${i*40}ms`;
+      row.innerHTML=`
+        <div class="avatar ${s.has_device?'gold':''}">${esc(initials(s.name))}</div>
+        <div><div class="nm">${esc(s.name)}</div><div class="meta"><span class="reg">${esc(s.reg_no)}</span><span>${esc(s.programme)}</span><span>${esc(s.hall)}</span></div></div>
+        <div class="status">${statusPill(s)}</div>
+        <div class="act">${ s.has_device ? `<button class="btn btn-primary" data-track="${esc(s.reg_no)}">Track student</button>` : `<button class="btn" disabled>No device</button>` }</div>`;
+      listEl.appendChild(row);
+    });
+    listEl.querySelectorAll('[data-track]').forEach(b=>b.addEventListener('click',()=>trackStudent(b.dataset.track)));
+  }
+  function applyFilter(){
+    const q=document.getElementById('q').value.trim().toUpperCase(); let visible=0, exact=null;
+    listEl.querySelectorAll('.row').forEach(row=>{
+      const reg=row.dataset.reg.toUpperCase(), nm=row.querySelector('.nm').textContent.toUpperCase();
+      const hit=!q||reg.includes(q)||nm.includes(q);
+      row.classList.toggle('dim',!hit); row.classList.toggle('match',!!q&&reg===q);
+      if(hit) visible++; if(reg===q) exact=row;
+    });
+    emptyEl.style.display=visible?'none':'block';
+    document.getElementById('qnote').textContent=q?`${visible} match${visible===1?'':'es'}`:'';
+    if(exact) exact.scrollIntoView({block:'center',behavior:'smooth'});
+  }
+  const overlay=document.getElementById('overlay'), pingCard=document.getElementById('pingCard');
+  async function trackStudent(reg){
+    pingCard.className='ping-card';
+    document.getElementById('pingTitle').textContent='Checking device status…';
+    document.getElementById('pingMsg').textContent=`Contacting ${reg}`;
+    overlay.classList.add('show');
+    try{
+      const p=await (await fetch(`/api/ping/${reg}`)).json();
+      await new Promise(r=>setTimeout(r,900));
+      if(p.has_device){
+        document.getElementById('pingTitle').textContent=p.online?'Device found':'Opening last known position';
+        document.getElementById('pingMsg').textContent=`Loading live map for ${reg}`;
+        setTimeout(()=>window.location=`/track/${reg}`,550);
+      } else {
+        pingCard.className='ping-card fail';
+        document.getElementById('pingTitle').textContent='No device assigned';
+        document.getElementById('pingMsg').textContent=p.message||'This student has no tracking device.';
+        pingCard.insertAdjacentHTML('beforeend','<button class="btn btn-primary redo" onclick="document.getElementById(\'overlay\').classList.remove(\'show\')">Close</button>');
+      }
+    }catch(_){ pingCard.className='ping-card fail'; document.getElementById('pingTitle').textContent='Could not reach server'; document.getElementById('pingMsg').textContent='Check the backend is running.'; }
+  }
+  document.getElementById('q').addEventListener('input',applyFilter);
+
+  fetch('/api/students').then(r=>r.json()).then(data=>{
+    students=data; render();
+    const q=new URLSearchParams(location.search).get('q');
+    if(q){ document.getElementById('q').value=q; applyFilter(); }
+  });
+</script>
+</body>
+</html>

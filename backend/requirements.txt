@@ -1,0 +1,5 @@
+flask==3.0.3
+flask-socketio==5.3.6
+flask-swagger-ui==5.32.9
+pyserial==3.5
+reportlab==4.4.9

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000" role="img" aria-labelledby="title description">
+  <title id="title">Offline ABU Zaria presentation map</title>
+  <description id="description">A simple local campus reference map used when internet map tiles are unavailable.</description>
+  <rect width="1400" height="1000" fill="#e8ede5"/>
+  <g fill="#d6e2d1" stroke="#c0d0bb" stroke-width="2">
+    <path d="M0 80L260 20l160 170-80 230L40 390Z"/>
+    <path d="M930 0l470 0v360l-250 90-240-180Z"/>
+    <path d="M20 690l390-130 250 300-180 140H0Z"/>
+    <path d="M970 620l430-130v510H820Z"/>
+  </g>
+  <g fill="none" stroke="#f8f7f1" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-60 840C270 720 390 610 610 490S1020 280 1460 150"/>
+    <path d="M190 -30C350 240 470 410 700 520s430 180 730 450"/>
+    <path d="M40 480C330 430 520 390 720 250s420-110 690-20"/>
+    <path d="M480 1020C560 770 700 650 880 560s320-160 540-170"/>
+  </g>
+  <g fill="none" stroke="#b8c3b4" stroke-width="3" stroke-dasharray="9 9">
+    <path d="M0 250H1400M0 500H1400M0 750H1400"/>
+    <path d="M350 0V1000M700 0V1000M1050 0V1000"/>
+  </g>
+  <g font-family="Arial, sans-serif" fill="#1f3b2d">
+    <text x="70" y="100" font-size="42" font-weight="700">ABU Zaria · Offline presentation map</text>
+    <text x="72" y="140" font-size="23" fill="#65766d">Saved route data remains accurate; background detail is simplified.</text>
+    <text x="630" y="460" font-size="34" font-weight="700">Main Campus</text>
+    <text x="830" y="290" font-size="25">Faculty of Engineering</text>
+    <text x="270" y="675" font-size="25">Samaru</text>
+    <text x="1040" y="710" font-size="25">Campus boundary area</text>
+  </g>
+  <g fill="#12633b" stroke="#fff" stroke-width="7">
+    <circle cx="760" cy="475" r="19"/>
+    <circle cx="930" cy="340" r="15"/>
+    <circle cx="540" cy="590" r="15"/>
+  </g>
+  <g font-family="monospace" font-size="20" fill="#617168">
+    <text x="22" y="985">11.10°N, 7.59°E</text>
+    <text x="1170" y="985">11.10°N, 7.72°E</text>
+    <text x="22" y="32">11.20°N</text>
+  </g>
+</svg>
